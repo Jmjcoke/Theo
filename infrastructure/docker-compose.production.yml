@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ${DOCKER_USERNAME}/theo-backend:${IMAGE_TAG:-latest}
+    container_name: theo-backend
+    ports:
+      - "8001:8001"
+    environment:
+      - ENVIRONMENT=production
+      - SQLITE_DATABASE_PATH=/app/data/database.db
+      - PYTHONPATH=/app
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - theo-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    image: ${DOCKER_USERNAME}/theo-frontend:${IMAGE_TAG:-latest}
+    container_name: theo-frontend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - theo-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  theo-network:
+    driver: bridge
+
+volumes:
+  theo-data:
+    driver: local

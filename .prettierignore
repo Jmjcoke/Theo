@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+coverage
+.next
+*.lock
+*.log
+PocketFlow-main
+.bmad-core
+.claude
+.cursor
+.github
+web-bundles
+docs

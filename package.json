@@ -1,12 +1,41 @@
 {
   "name": "theo",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Theo monorepo - AI-powered document management and chat platform",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "eslint \"apps/web/src/**/*.{ts,tsx,js,jsx}\" \"apps/api/src/**/*.{ts,tsx,js,jsx}\"",
+    "lint:fix": "eslint \"apps/web/src/**/*.{ts,tsx,js,jsx}\" \"apps/api/src/**/*.{ts,tsx,js,jsx}\" --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "clean": "npm run clean --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "description": ""
+  "license": "ISC"
 }

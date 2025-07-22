@@ -53,8 +53,11 @@ const Index = () => {
       <main className="container mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Your AI-Powered Theological Research Assistant
+            Welcome to Theo.
           </h1>
+          <h2 className="text-2xl font-semibold mb-4 text-foreground">
+            Your AI-Powered Theological Research Assistant
+          </h2>
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
             Unlock the depths of theological knowledge with Theo. Our advanced RAG system helps you 
             explore scripture, church history, and systematic theology with unprecedented insight.

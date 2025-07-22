@@ -1,0 +1,257 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    outputs:
+      backend-image: ${{ steps.backend-meta.outputs.tags }}
+      frontend-image: ${{ steps.frontend-meta.outputs.tags }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Backend Build Process
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('apps/api/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install Python dependencies
+      run: |
+        cd apps/api
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Test backend build
+      run: |
+        cd apps/api
+        python -c "import main; print('Backend imports successfully')"
+
+    - name: Extract backend metadata
+      id: backend-meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ secrets.DOCKER_USERNAME }}/theo-backend
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix=main-
+
+    - name: Build and push backend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./apps/api
+        file: ./apps/api/Dockerfile
+        push: true
+        tags: ${{ steps.backend-meta.outputs.tags }}
+        labels: ${{ steps.backend-meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    # Frontend Build Process
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: apps/web/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd apps/web
+        npm ci
+
+    - name: Lint frontend code
+      run: |
+        cd apps/web
+        npm run lint
+
+    - name: Build frontend
+      run: |
+        cd apps/web
+        npm run build
+
+    - name: Test frontend build
+      run: |
+        cd apps/web
+        test -d dist && echo "Frontend build successful"
+        test -f dist/index.html && echo "Frontend index.html generated"
+
+    - name: Extract frontend metadata
+      id: frontend-meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ secrets.DOCKER_USERNAME }}/theo-frontend
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix=main-
+
+    - name: Build and push frontend Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./apps/web
+        file: ./apps/web/Dockerfile
+        push: true
+        tags: ${{ steps.frontend-meta.outputs.tags }}
+        labels: ${{ steps.frontend-meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout deployment scripts
+      uses: actions/checkout@v4
+
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Add server to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy to DigitalOcean
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          set -e
+          echo "Starting deployment..."
+          
+          # Create deployment directory if it doesn't exist
+          mkdir -p /opt/theo
+          cd /opt/theo
+          
+          # Pull latest images
+          docker pull ${{ needs.build-and-test.outputs.backend-image }}
+          docker pull ${{ needs.build-and-test.outputs.frontend-image }}
+          
+          # Stop existing containers gracefully
+          docker-compose down --timeout 30 || true
+          
+          # Update docker-compose.yml with new images
+          cat > docker-compose.yml << 'COMPOSE_EOF'
+        version: '3.8'
+        services:
+          backend:
+            image: ${{ needs.build-and-test.outputs.backend-image }}
+            container_name: theo-backend
+            ports:
+              - "8001:8001"
+            environment:
+              - ENVIRONMENT=production
+              - SQLITE_DATABASE_PATH=/app/data/database.db
+            volumes:
+              - ./data:/app/data
+            restart: unless-stopped
+            healthcheck:
+              test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+              interval: 30s
+              timeout: 10s
+              retries: 3
+              start_period: 40s
+
+          frontend:
+            image: ${{ needs.build-and-test.outputs.frontend-image }}
+            container_name: theo-frontend
+            ports:
+              - "3000:3000"
+            restart: unless-stopped
+            depends_on:
+              - backend
+        COMPOSE_EOF
+          
+          # Start services
+          docker-compose up -d
+          
+          # Wait for services to be healthy
+          echo "Waiting for services to start..."
+          sleep 30
+          
+          echo "Deployment completed successfully"
+        EOF
+
+  health-check:
+    needs: deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Wait for deployment
+      run: sleep 60
+
+    - name: Check backend health
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.SERVER_HOST }}/health)
+        if [ "$response" = "200" ]; then
+          echo "✅ Backend health check passed"
+        else
+          echo "❌ Backend health check failed with status: $response"
+          exit 1
+        fi
+
+    - name: Check frontend availability
+      run: |
+        response=$(curl -s https://${{ secrets.SERVER_HOST }} | grep -i "Welcome to Theo")
+        if [ -n "$response" ]; then
+          echo "✅ Frontend displays 'Welcome to Theo.' message"
+        else
+          echo "❌ Frontend does not display expected welcome message"
+          exit 1
+        fi
+
+    - name: Validate backend JSON response
+      run: |
+        health_response=$(curl -s https://${{ secrets.SERVER_HOST }}/health)
+        status=$(echo "$health_response" | jq -r '.status')
+        if [ "$status" = "ok" ]; then
+          echo "✅ Backend returns correct JSON: $health_response"
+        else
+          echo "❌ Backend health check JSON validation failed: $health_response"
+          exit 1
+        fi
+
+  notify:
+    needs: [build-and-test, deploy, health-check]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify deployment status
+      run: |
+        if [ "${{ needs.health-check.result }}" = "success" ]; then
+          echo "🚀 Deployment successful!"
+          echo "✅ Backend: https://${{ secrets.SERVER_HOST }}/health"
+          echo "✅ Frontend: https://${{ secrets.SERVER_HOST }}"
+        else
+          echo "❌ Deployment failed!"
+          exit 1
+        fi

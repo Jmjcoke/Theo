@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@packages/*": ["./packages/*"],
+      "@apps/*": ["./apps/*"],
+      "@/*": ["./apps/web/src/*"],
+      "@api/*": ["./apps/api/src/*"],
+      "@workers/*": ["./apps/workers/src/*"]
+    },
+    "types": ["node"],
+    "lib": ["DOM", "DOM.Iterable", "ES6"]
+  },
+  "include": [
+    "apps/**/*",
+    "packages/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "PocketFlow-main",
+    "**/src.archive",
+    "apps/web/test_frontend.js",
+    "apps/api/venv"
+  ]
+}

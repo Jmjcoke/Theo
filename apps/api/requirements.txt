@@ -1,0 +1,33 @@
+# Core PocketFlow framework
+pocketflow>=0.0.2
+
+# FastAPI and ASGI server dependencies
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+
+# Additional dependencies for future development
+python-multipart==0.0.12
+pydantic==2.10.2
+
+# LLM integration dependencies
+openai>=1.0.0
+anthropic>=0.8.0
+
+# Async & HTTP
+aiohttp>=3.8.0
+aiofiles>=23.0.0
+
+# Structured output dependencies
+PyYAML>=6.0
+
+# Background processing dependencies
+celery>=5.3.0
+redis>=4.5.0
+
+# Vector database dependencies
+faiss-cpu>=1.7.0
+
+# Testing dependencies
+requests>=2.32.3
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
