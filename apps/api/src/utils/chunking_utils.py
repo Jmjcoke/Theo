@@ -178,6 +178,42 @@ class ChunkingUtils:
     
     def _parse_biblical_verses(self, content: str) -> List[Dict[str, Any]]:
         """Parse biblical text to extract verse information."""
+        # First try to parse as JSON
+        import json
+        try:
+            data = json.loads(content)
+            if isinstance(data, dict) and 'book' in data and 'chapters' in data:
+                return self._parse_json_bible(data)
+        except (json.JSONDecodeError, TypeError):
+            pass
+        
+        # Fall back to plain text parsing
+        return self._parse_plain_text_bible(content)
+    
+    def _parse_json_bible(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parse JSON Bible format to extract verse information."""
+        verses = []
+        book = data.get('book', 'Unknown')
+        
+        for chapter_data in data.get('chapters', []):
+            chapter_num = int(chapter_data.get('chapter', 1))
+            chapter_verses = chapter_data.get('verses', [])
+            
+            for verse_data in chapter_verses:
+                verse_num = int(verse_data.get('verse', 1))
+                verse_text = verse_data.get('text', '').strip()
+                
+                verses.append({
+                    'book': book,
+                    'chapter': chapter_num,
+                    'verse': verse_num,
+                    'text': f"{verse_num} {verse_text}"
+                })
+        
+        return verses
+    
+    def _parse_plain_text_bible(self, content: str) -> List[Dict[str, Any]]:
+        """Parse plain text biblical content to extract verse information."""
         verses = []
         lines = content.split('\n')
         

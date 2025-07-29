@@ -71,33 +71,14 @@ class FileReaderUtils:
             return await f.read()
     
     async def _read_json_bible(self, file_path: str) -> str:
-        """Extract text from Bible JSON file and format for processing."""
+        """Read Bible JSON file and return raw JSON content for processing."""
         try:
             async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
                 content = await f.read()
-                bible_data = json.loads(content)
-            
-            # Handle different JSON Bible formats
-            if isinstance(bible_data, dict):
-                # Format 1: Direct book-chapter-verse structure (like Psalms.json)
-                if 'book' in bible_data and 'chapters' in bible_data:
-                    return self._format_structured_bible_json(bible_data)
-                # Format 2: Books array or verses array
-                elif 'books' in bible_data or 'verses' in bible_data:
-                    return self._format_structured_bible_json(bible_data)
-                # Format 3: {book_name: {chapter: {verse: text}}}
-                elif any(isinstance(v, dict) for v in bible_data.values()):
-                    return self._format_nested_bible_json(bible_data)
-                # Format 4: Simple verse list
-                else:
-                    return self._format_simple_bible_json(bible_data)
-            
-            # Format 4: Array of verses
-            elif isinstance(bible_data, list):
-                return self._format_verse_array_json(bible_data)
-            
-            else:
-                raise ValueError("Unsupported Bible JSON format")
+                # Validate that it's valid JSON
+                json.loads(content)
+                # Return raw JSON content for specialized chunking
+                return content
                 
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON format: {str(e)}")

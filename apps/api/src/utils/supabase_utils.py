@@ -18,13 +18,14 @@ class SupabaseUtils:
         self.logger = logging.getLogger(__name__)
         self.client: Optional[Client] = None
     
-    def create_client(self) -> Client:
-        """Create and return authenticated Supabase client"""
+    def create_client(self) -> Optional[Client]:
+        """Create and return authenticated Supabase client, or None if not configured"""
         supabase_url = os.getenv('SUPABASE_URL')
         supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
         
         if not supabase_url or not supabase_key:
-            raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables required")
+            self.logger.warning("Supabase not configured (missing SUPABASE_URL or SUPABASE_SERVICE_KEY). Using test mode.")
+            return None
         
         self.client = create_client(supabase_url, supabase_key)
         return self.client

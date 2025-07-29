@@ -84,9 +84,14 @@ class DocumentProcessingFlow:
             if not chunking_result.get('success', False):
                 return await self._handle_failure(shared_store, f"Document chunking failed: {chunking_result.get('error')}")
             
-            # Map chunker output to embedder input format
-            shared_store['document_chunks'] = shared_store.get('document_chunks', [])
-            shared_store['chunk_count'] = shared_store.get('chunk_count', 0)
+            # Verify chunks were created and stored
+            document_chunks = shared_store.get('document_chunks', [])
+            chunk_count = shared_store.get('chunk_count', 0)
+            
+            if not document_chunks or chunk_count == 0:
+                return await self._handle_failure(shared_store, f"Document chunking produced no chunks. Chunks: {len(document_chunks)}, Count: {chunk_count}")
+            
+            self.logger.info(f"Successfully created {chunk_count} chunks for document {shared_store['document_id']}")
             
             # Step 3: Embedding Generation
             self.logger.info("Step 3: Generating embeddings")
