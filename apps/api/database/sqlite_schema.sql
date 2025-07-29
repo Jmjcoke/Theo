@@ -18,9 +18,14 @@ CREATE TABLE users (
 CREATE TABLE documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     filename TEXT NOT NULL,
-    document_type TEXT NOT NULL CHECK (document_type IN ('biblical', 'theological', 'other')),
+    original_filename TEXT NOT NULL,
     file_path TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'completed', 'failed')),
+    document_type TEXT NOT NULL CHECK (document_type IN ('biblical', 'theological', 'other')),
+    processing_status TEXT NOT NULL DEFAULT 'queued' CHECK (processing_status IN ('queued', 'processing', 'completed', 'failed')),
+    uploaded_by TEXT,  -- Will store user_id as string for compatibility
+    file_size INTEGER NOT NULL DEFAULT 0,
+    mime_type TEXT,
+    metadata TEXT,  -- JSON stored as TEXT in SQLite
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -39,8 +44,10 @@ CREATE TABLE processing_jobs (
 -- Indexes for performance optimization
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_status ON users(status);
-CREATE INDEX idx_documents_status ON documents(status);
+CREATE INDEX idx_documents_processing_status ON documents(processing_status);
 CREATE INDEX idx_documents_type ON documents(document_type);
+CREATE INDEX idx_documents_uploaded_by ON documents(uploaded_by);
+CREATE INDEX idx_documents_created_at ON documents(created_at);
 CREATE INDEX idx_processing_jobs_document_id ON processing_jobs(document_id);
 CREATE INDEX idx_processing_jobs_status ON processing_jobs(status);
 
