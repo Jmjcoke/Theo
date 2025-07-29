@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/admin", tags=["document-upload"])
 
 # Configuration constants
 MAX_FILE_SIZE = 52428800  # 50MB
-ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.txt', '.md'}
+ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.txt', '.md', '.json'}
 ALLOWED_DOCUMENT_TYPES = {'biblical', 'theological'}
 UPLOAD_DIR = "uploads"
 
@@ -37,7 +37,8 @@ EXPECTED_MIME_TYPES = {
     '.pdf': 'application/pdf',
     '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     '.txt': 'text/plain',
-    '.md': {'text/markdown', 'text/plain', 'text/x-markdown'}
+    '.md': {'text/markdown', 'text/plain', 'text/x-markdown'},
+    '.json': {'application/json', 'text/plain'}
 }
 
 class DocumentValidationError(Exception):
@@ -226,7 +227,7 @@ async def progress_generator(document_id: int) -> AsyncGenerator[str, None]:
 @router.post("/upload")
 async def upload_document(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(..., description="Document file to upload (PDF, DOCX, TXT, MD)"),
+    file: UploadFile = File(..., description="Document file to upload (PDF, DOCX, TXT, MD, JSON)"),
     documentType: str = Form(..., description="Document type: 'biblical' or 'theological'"),
     category: Optional[str] = Form(None, description="Optional document category"),
     current_user: Dict[str, Any] = Depends(require_admin_role)
@@ -245,7 +246,7 @@ async def upload_document(
     
     **File Requirements:**
     - Maximum size: 50MB
-    - Supported types: PDF, DOCX, TXT, MD
+    - Supported types: PDF, DOCX, TXT, MD, JSON
     - File must not be empty
     - MIME type must match file extension
     

@@ -16,6 +16,9 @@ class ChunkingUtils:
         chunks = []
         chunk_id = 0
         
+        # Extract Bible version from metadata if available
+        bible_version = metadata.get('biblical_version', 'Unknown')
+        
         for i in range(0, len(verses), 4):  # Step by 4 for 1-verse overlap
             verse_group = verses[i:i + 5]  # Take up to 5 verses
             if not verse_group:
@@ -45,8 +48,75 @@ class ChunkingUtils:
                     "verse_start": start_verse,
                     "verse_end": end_verse,
                     "citation": citation,
+                    "biblical_version": bible_version,
                     "overlap_with_previous": chunk_id > 0,
                     "overlap_with_next": i + 4 < len(verses)
+                }
+            }
+            
+            chunks.append(chunk)
+            chunk_id += 1
+        
+        return chunks
+    
+    def chunk_json_bible_document(self, content: str, document_id: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Specialized chunking for JSON Bible files with enhanced metadata extraction."""
+        verses = self._parse_biblical_verses(content)
+        chunks = []
+        chunk_id = 0
+        
+        # Extract Bible version from metadata or try to detect from filename
+        bible_version = metadata.get('biblical_version', 'Unknown')
+        original_filename = metadata.get('original_filename', '')
+        
+        # Try to extract version from filename (e.g., "ESV.json", "NIV_bible.json")
+        if bible_version == 'Unknown' and original_filename:
+            version_patterns = ['ESV', 'NIV', 'KJV', 'NASB', 'NLT', 'MSG', 'AMP', 'NKJV']
+            for version in version_patterns:
+                if version.lower() in original_filename.lower():
+                    bible_version = version
+                    break
+        
+        for i in range(0, len(verses), 4):  # Step by 4 for 1-verse overlap
+            verse_group = verses[i:i + 5]  # Take up to 5 verses
+            if not verse_group:
+                break
+                
+            chunk_content = "\n".join([v['text'] for v in verse_group])
+            
+            # Determine verse range
+            start_verse = verse_group[0]['verse']
+            end_verse = verse_group[-1]['verse']
+            book = verse_group[0]['book']
+            chapter = verse_group[0]['chapter']
+            
+            citation = f"{book} {chapter}:{start_verse}"
+            if end_verse != start_verse:
+                citation += f"-{end_verse}"
+            
+            # Enhanced metadata for JSON Bible files
+            chunk = {
+                "chunk_id": f"{document_id}_chunk_{chunk_id}",
+                "chunk_index": chunk_id,
+                "content": chunk_content,
+                "chunk_type": "json_biblical_verse_group",
+                "document_id": document_id,
+                "metadata": {
+                    "book": book,
+                    "chapter": chapter,
+                    "verse_start": start_verse,
+                    "verse_end": end_verse,
+                    "citation": citation,
+                    "biblical_version": bible_version,
+                    "source_format": "json",
+                    "original_filename": original_filename,
+                    "verse_count": len(verse_group),
+                    "overlap_with_previous": chunk_id > 0,
+                    "overlap_with_next": i + 4 < len(verses),
+                    "biblical_book": book,  # For database schema compatibility
+                    "biblical_chapter": chapter,
+                    "biblical_verse_start": start_verse,
+                    "biblical_verse_end": end_verse
                 }
             }
             
