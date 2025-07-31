@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     # Supabase settings
     supabase_url: Optional[str] = Field(default=None, env="SUPABASE_URL")
     supabase_service_key: Optional[str] = Field(default=None, env="SUPABASE_SERVICE_KEY")
+    supabase_edge_function_url: Optional[str] = Field(default=None, env="SUPABASE_EDGE_FUNCTION_URL")
     
     # File upload settings
     upload_dir: str = Field(default="uploads", env="UPLOAD_DIR")

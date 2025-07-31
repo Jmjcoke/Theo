@@ -5,7 +5,12 @@ This is the main entry point for the Theo backend API.
 Provides a basic FastAPI application with health check endpoint.
 """
 
+import os
+from dotenv import load_dotenv
 from typing import Dict
+
+# Load environment variables from .env file
+load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

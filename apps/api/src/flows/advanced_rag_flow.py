@@ -12,7 +12,7 @@ from typing import Dict, Any
 from pocketflow import AsyncFlow
 
 from ..nodes.chat.query_embedder_node import QueryEmbedderNode
-from ..nodes.chat.supabase_search_node import SupabaseSearchNode
+from ..nodes.chat.supabase_edge_search_node import SupabaseEdgeSearchNode
 from ..nodes.chat.re_ranker_node import ReRankerNode
 from ..nodes.chat.advanced_generator_node import AdvancedGeneratorNode
 
@@ -30,11 +30,10 @@ class AdvancedRAGFlow(AsyncFlow):
     """
     
     def __init__(self):
-        """Initialize the advanced RAG flow with connected nodes"""
-        # Initialize nodes
+        """Initialize the advanced RAG flow with individual nodes"""
+        # Initialize nodes without AsyncFlow chaining to avoid unhashable dict error
         self.query_embedder = QueryEmbedderNode()
-        self.supabase_search = SupabaseSearchNode(
-            similarity_threshold=0.7,
+        self.supabase_search = SupabaseEdgeSearchNode(
             result_limit=10  # Increased to allow re-ranking to select top 5
         )
         self.re_ranker = ReRankerNode(
@@ -48,13 +47,7 @@ class AdvancedRAGFlow(AsyncFlow):
             temperature=0.3
         )
         
-        # Connect nodes in sequence: QueryEmbedder → SupabaseSearch → ReRanker → AdvancedGenerator
-        self.query_embedder >> self.supabase_search
-        self.supabase_search >> self.re_ranker
-        self.re_ranker >> self.advanced_generator
-        
-        # Initialize AsyncFlow with proper start node
-        super().__init__(start=self.query_embedder)
+        # Don't use AsyncFlow node chaining - execute manually to avoid dict hash errors
     
     async def prep_async(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare shared store for advanced RAG pipeline execution"""
@@ -197,16 +190,60 @@ class AdvancedRAGFlow(AsyncFlow):
             return error_response
     
     async def run(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the complete advanced RAG pipeline"""
+        """Execute the complete advanced RAG pipeline manually"""
         try:
-            # Use AsyncFlow's run_async method for proper execution
-            await self.run_async(shared_store)
+            # Prepare the pipeline
+            prep_result = await self.prep_async(shared_store)
+            if 'error' in prep_result:
+                return {
+                    "success": False,
+                    "error": prep_result['error'],
+                    "pipeline_metadata": {"pipeline_type": "advanced_rag"}
+                }
             
-            # Return the processed results from post_async
-            return shared_store.get('final_result', {
-                "success": False,
-                "error": "Advanced pipeline execution failed"
-            })
+            logger.info(f"Advanced RAG pipeline initialized for query: {shared_store['query'][:50]}...")
+            
+            # Step 1: Generate query embedding
+            embed_result = await self.query_embedder._run_async(shared_store)
+            if not isinstance(embed_result, dict) or embed_result.get("next_state") != "success":
+                return {
+                    "success": False,
+                    "error": "Query embedding failed",
+                    "pipeline_metadata": {"pipeline_type": "advanced_rag", "failed_at": "embedding"}
+                }
+            
+            # Step 2: Search Supabase with embeddings
+            search_result = await self.supabase_search._run_async(shared_store)
+            # SupabaseEdgeSearchNode returns "default" on success, "failed" on failure
+            if search_result not in ["default"]:
+                return {
+                    "success": False,
+                    "error": "Document search failed",
+                    "pipeline_metadata": {"pipeline_type": "advanced_rag", "failed_at": "search"}
+                }
+            
+            # Step 3: Re-rank results
+            rerank_result = await self.re_ranker._run_async(shared_store)
+            # ReRankerNode returns "default" on success, "failed" on failure
+            if rerank_result not in ["default"]:
+                return {
+                    "success": False,
+                    "error": "Result re-ranking failed",
+                    "pipeline_metadata": {"pipeline_type": "advanced_rag", "failed_at": "reranking"}
+                }
+            
+            # Step 4: Generate response
+            gen_result = await self.advanced_generator._run_async(shared_store)
+            # AdvancedGeneratorNode returns "default" on success, "failed" on failure
+            if gen_result not in ["default"]:
+                return {
+                    "success": False,
+                    "error": "Response generation failed",
+                    "pipeline_metadata": {"pipeline_type": "advanced_rag", "failed_at": "generation"}
+                }
+            
+            # Process final results
+            return await self.post_async(shared_store, prep_result, "success")
             
         except Exception as e:
             logger.error(f"AdvancedRAGFlow run error: {str(e)}")

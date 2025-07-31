@@ -15,13 +15,14 @@ from pocketflow import AsyncFlow
 from ..nodes.chat.supabase_edge_search_node import SupabaseEdgeSearchNode
 from ..nodes.chat.re_ranker_node import ReRankerNode
 from ..nodes.chat.simple_generator_node import SimpleGeneratorNode
-from ..utils.performance_utils import (
-    TimeoutManager, 
-    get_performance_cache,
-    get_performance_metrics,
-    with_performance_monitoring,
-    with_circuit_breaker
-)
+# Temporarily removed performance_utils imports due to missing config settings
+# from ..utils.performance_utils import (
+#     TimeoutManager, 
+#     get_performance_cache,
+#     get_performance_metrics,
+#     with_performance_monitoring,
+#     with_circuit_breaker
+# )
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +65,9 @@ class BasicRAGFlow(AsyncFlow):
         pipeline_id = str(uuid.uuid4())
         shared_store['pipeline_id'] = pipeline_id
         
-        # Start performance tracking
-        metrics = get_performance_metrics()
-        metrics.start_operation(pipeline_id, 'basic_rag_pipeline')
+        # Start performance tracking - temporarily disabled
+        # metrics = get_performance_metrics()
+        # metrics.start_operation(pipeline_id, 'basic_rag_pipeline')
         
         try:
             # Validate required inputs
@@ -92,27 +93,28 @@ class BasicRAGFlow(AsyncFlow):
                 'pipeline_id': pipeline_id,
                 'cache_enabled': True,
                 'timeout_settings': {
-                    'edge_function': TimeoutManager.get_timeout('edge_function'),
-                    'llm_request': TimeoutManager.get_timeout('llm_request'),
-                    'total_pipeline': TimeoutManager.get_timeout('rag_pipeline')
+                    'edge_function': 30,  # Default timeout values
+                    'llm_request': 60,
+                    'total_pipeline': 120
                 }
             }
             
-            # Check cache for similar queries
-            cache = get_performance_cache()
+            # Cache for similar queries - temporarily disabled
+            # cache = get_performance_cache()
+            # query = shared_store['query']
+            # cache_key = cache.generate_key('basic_rag', query=query, context=shared_store.get('context', 'general'))
+            # cached_result = cache.get(cache_key)
+            
+            # if cached_result:
+            #     logger.info(f"Cache hit for basic RAG query: {query[:50]}...")
+            #     shared_store['cached_result'] = cached_result
+            #     shared_store['cache_key'] = cache_key
+            #     shared_store['cache_hit'] = True
+            # else:
+            #     shared_store['cache_key'] = cache_key
+            shared_store['cache_hit'] = False
+            
             query = shared_store['query']
-            cache_key = cache.generate_key('basic_rag', query=query, context=shared_store.get('context', 'general'))
-            cached_result = cache.get(cache_key)
-            
-            if cached_result:
-                logger.info(f"Cache hit for basic RAG query: {query[:50]}...")
-                shared_store['cached_result'] = cached_result
-                shared_store['cache_key'] = cache_key
-                shared_store['cache_hit'] = True
-            else:
-                shared_store['cache_key'] = cache_key
-                shared_store['cache_hit'] = False
-            
             logger.info(f"Basic RAG pipeline initialized for query: {query[:50]}... (cached: {shared_store['cache_hit']})")
             return True
             
@@ -120,14 +122,14 @@ class BasicRAGFlow(AsyncFlow):
             logger.error(f"BasicRAGFlow prep error: {str(e)}")
             shared_store['pipeline_error'] = str(e)
             
-            # Record failure in metrics
-            metrics.end_operation(pipeline_id, success=False, error=str(e))
+            # Record failure in metrics - temporarily disabled
+            # metrics.end_operation(pipeline_id, success=False, error=str(e))
             return False
     
     async def post_async(self, shared_store: Dict[str, Any], prep_result: bool, exec_result: str) -> Dict[str, Any]:
         """Process final results and format response with performance optimizations"""
         pipeline_id = shared_store.get('pipeline_id', 'unknown')
-        metrics = get_performance_metrics()
+        # metrics = get_performance_metrics()  # temporarily disabled
         
         try:
             # Check if we used cached result
@@ -135,7 +137,7 @@ class BasicRAGFlow(AsyncFlow):
                 cached_result = shared_store.get('cached_result')
                 if cached_result:
                     logger.info(f"Returning cached result for pipeline: {pipeline_id}")
-                    metrics.end_operation(pipeline_id, success=True)
+                    # metrics.end_operation(pipeline_id, success=True)  # temporarily disabled
                     shared_store['final_result'] = cached_result
                     return cached_result
             
@@ -184,15 +186,15 @@ class BasicRAGFlow(AsyncFlow):
                     }
                 }
                 
-                # Cache successful result
-                cache = get_performance_cache()
-                cache_key = shared_store.get('cache_key')
-                if cache_key:
-                    cache.set(cache_key, response_data)
-                    logger.debug(f"Result cached for future queries: {cache_key}")
+                # Cache successful result - temporarily disabled
+                # cache = get_performance_cache()
+                # cache_key = shared_store.get('cache_key')
+                # if cache_key:
+                #     cache.set(cache_key, response_data)
+                #     logger.debug(f"Result cached for future queries: {cache_key}")
                 
                 logger.info(f"Basic RAG pipeline completed successfully: {pipeline_id} in {total_time:.3f}s")
-                metrics.end_operation(pipeline_id, success=True)
+                # metrics.end_operation(pipeline_id, success=True)  # temporarily disabled
                 
                 # Store final result in shared store for run() method
                 shared_store['final_result'] = response_data
@@ -230,7 +232,7 @@ class BasicRAGFlow(AsyncFlow):
                 }
                 
                 logger.error(f"Basic RAG pipeline failed: {pipeline_id} - {combined_error}")
-                metrics.end_operation(pipeline_id, success=False, error=combined_error)
+                # metrics.end_operation(pipeline_id, success=False, error=combined_error)  # temporarily disabled
                 
                 # Store final result in shared store for run() method
                 shared_store['final_result'] = response_data
@@ -238,7 +240,7 @@ class BasicRAGFlow(AsyncFlow):
                 
         except Exception as e:
             logger.error(f"BasicRAGFlow post error: {str(e)}")
-            metrics.end_operation(pipeline_id, success=False, error=str(e))
+            # metrics.end_operation(pipeline_id, success=False, error=str(e))  # temporarily disabled
             
             error_response = {
                 "success": False,
@@ -252,13 +254,13 @@ class BasicRAGFlow(AsyncFlow):
             shared_store['final_result'] = error_response
             return error_response
     
-    @with_performance_monitoring('basic_rag_execution')
+    # @with_performance_monitoring('basic_rag_execution')  # temporarily disabled
     async def run(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the complete RAG pipeline with timeout management"""
         try:
-            # Execute with timeout management
+            # Execute with timeout management - temporarily use simple timeout
             pipeline_execution = self.run_async(shared_store)
-            await TimeoutManager.with_timeout(pipeline_execution, 'rag_pipeline')
+            await asyncio.wait_for(pipeline_execution, timeout=120)  # 2 minute timeout
             
             # Return the processed results from post_async
             result = shared_store.get('final_result', {
@@ -273,11 +275,11 @@ class BasicRAGFlow(AsyncFlow):
             error_msg = "Basic RAG pipeline execution timed out"
             logger.error(error_msg)
             
-            # Record timeout in metrics if pipeline_id available
-            pipeline_id = shared_store.get('pipeline_id')
-            if pipeline_id:
-                metrics = get_performance_metrics()
-                metrics.end_operation(pipeline_id, success=False, error=error_msg)
+            # Record timeout in metrics if pipeline_id available - temporarily disabled
+            # pipeline_id = shared_store.get('pipeline_id')
+            # if pipeline_id:
+            #     metrics = get_performance_metrics()
+            #     metrics.end_operation(pipeline_id, success=False, error=error_msg)
             
             return {
                 "success": False,
@@ -292,11 +294,11 @@ class BasicRAGFlow(AsyncFlow):
             error_msg = f"Basic RAG pipeline execution failed: {str(e)}"
             logger.error(error_msg)
             
-            # Record error in metrics if pipeline_id available
-            pipeline_id = shared_store.get('pipeline_id')
-            if pipeline_id:
-                metrics = get_performance_metrics()
-                metrics.end_operation(pipeline_id, success=False, error=str(e))
+            # Record error in metrics if pipeline_id available - temporarily disabled
+            # pipeline_id = shared_store.get('pipeline_id')
+            # if pipeline_id:
+            #     metrics = get_performance_metrics()
+            #     metrics.end_operation(pipeline_id, success=False, error=str(e))
             
             return {
                 "success": False,

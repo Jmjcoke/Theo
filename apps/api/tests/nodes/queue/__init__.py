@@ -1,0 +1,3 @@
+"""
+Queue node tests package
+"""

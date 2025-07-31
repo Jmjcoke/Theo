@@ -425,7 +425,8 @@ class ChatFlow(AsyncFlow):
             # First run intent recognition
             intent_result = await self.intent_recognition._run_async(shared_store)
             
-            if intent_result != "success":
+            # Check for correct return format from AsyncNode
+            if not isinstance(intent_result, dict) or intent_result.get("next_state") != "success":
                 shared_store['chat_error'] = "Intent recognition failed"
                 return await self.post_async(shared_store, shared_store, "failed")
             
