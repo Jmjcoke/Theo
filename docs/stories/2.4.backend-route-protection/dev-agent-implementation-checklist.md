@@ -1,0 +1,14 @@
+# Dev Agent Implementation Checklist
+- [ ] Create AuthMiddlewareNode in `apps/api/src/nodes/auth/`
+- [ ] Implement with AsyncNode for authentication operations
+- [ ] Add cookbook reference to docstring
+- [ ] Ensure implementation ≤150 lines
+- [ ] Create FastAPI dependencies in `apps/api/src/middleware/`
+- [ ] Implement role-based access control (RBAC)
+- [ ] Create protected route examples
+- [ ] Add proper HTTP status codes (401, 403)
+- [ ] Integrate JWT validation from previous story
+- [ ] Add authorization header parsing
+- [ ] Write comprehensive unit tests
+- [ ] Test with different user roles
+- [ ] Follow shared store naming conventions

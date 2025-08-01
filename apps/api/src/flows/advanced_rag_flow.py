@@ -12,8 +12,8 @@ from typing import Dict, Any
 from pocketflow import AsyncFlow
 
 from ..nodes.chat.query_embedder_node import QueryEmbedderNode
-from ..nodes.chat.supabase_edge_search_node import SupabaseEdgeSearchNode
-from ..nodes.chat.re_ranker_node import ReRankerNode
+from ..nodes.chat.supabase_edge_search_node_deprecated import SupabaseEdgeSearchNode
+from ..nodes.chat.compact_re_ranker_node import CompactReRankerNode
 from ..nodes.chat.advanced_generator_node import AdvancedGeneratorNode
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class AdvancedRAGFlow(AsyncFlow):
         self.supabase_search = SupabaseEdgeSearchNode(
             result_limit=10  # Increased to allow re-ranking to select top 5
         )
-        self.re_ranker = ReRankerNode(
+        self.re_ranker = CompactReRankerNode(
             model="gpt-4",
             top_k=5,
             temperature=0.1
@@ -224,8 +224,8 @@ class AdvancedRAGFlow(AsyncFlow):
             
             # Step 3: Re-rank results
             rerank_result = await self.re_ranker._run_async(shared_store)
-            # ReRankerNode returns "default" on success, "failed" on failure
-            if rerank_result not in ["default"]:
+            # CompactReRankerNode returns {"next_state": "reranked"} on success, {"next_state": "failed"} on failure
+            if not isinstance(rerank_result, dict) or rerank_result.get("next_state") not in ["reranked"]:
                 return {
                     "success": False,
                     "error": "Result re-ranking failed",

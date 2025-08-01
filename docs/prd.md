@@ -411,3 +411,304 @@ The "Theo" application is designed to address the need for a specialized Retriev
         1.  A new, protected `/api/export/pdf` endpoint is created on the backend that accepts Markdown and returns a PDF file.
         2.  Clicking the "Export as Markdown" button generates and downloads a `.md` file.
         3.  Clicking the "Export as PDF" button sends the panel's content to the `/api/export/pdf` endpoint and initiates a download.
+
+---
+
+## Implementation Plan & Roadmap
+
+### Overview
+
+This implementation plan outlines the systematic restoration and enhancement of the Theo theological research system. The plan is structured as a **brownfield modernization** that addresses the documented architectural failures while preserving valuable existing functionality. The approach prioritizes **stability, observability, and incremental delivery** to ensure continuous system availability during the restoration process.
+
+### Phased Implementation Approach
+
+#### Phase 1: Foundation Stabilization (Weeks 1-4)
+**Primary Goal:** Establish a stable, deployable foundation with proper development practices
+
+**Core Objectives:**
+- Stabilize existing architecture and eliminate critical technical debt
+- Implement proper development workflow and deployment pipeline
+- Establish monitoring and observability infrastructure
+- Create rollback mechanisms and backup procedures
+
+**Key Deliverables:**
+- Monorepo restructure with standardized tooling
+- Local-first development environment setup
+- Automated CI/CD pipeline to production
+- Database schema normalization and migration scripts
+- Comprehensive logging and monitoring implementation
+
+#### Phase 2: Authentication & Access Control Hardening (Weeks 5-8)
+**Primary Goal:** Secure the application with robust authentication and authorization
+
+**Core Objectives:**
+- Implement secure JWT-based authentication system
+- Create role-based access control (Admin/User)
+- Build user registration and approval workflow
+- Establish session management and security middleware
+
+**Key Deliverables:**
+- Secure user registration and login system
+- Admin approval workflow for new users
+- Protected route middleware for backend APIs
+- Frontend authentication state management
+- Security audit and penetration testing
+
+#### Phase 3: Document Processing Pipeline Restoration (Weeks 9-14)
+**Primary Goal:** Rebuild the document ingestion and processing system using PocketFlow
+
+**Core Objectives:**
+- Migrate existing processing logic to PocketFlow architecture
+- Implement proper async job queue with Celery/Redis
+- Create specialized nodes for biblical and theological content
+- Establish real-time status monitoring via SSE
+
+**Key Deliverables:**
+- PocketFlow-compliant node architecture (<150 lines per node)
+- Robust document upload and validation system
+- Biblical JSON and theological PDF processing pipelines
+- Real-time job status updates and error handling
+- Comprehensive processing pipeline testing
+
+#### Phase 4: Advanced RAG Engine Implementation (Weeks 15-20)
+**Primary Goal:** Deliver the core theological RAG system with hermeneutics filtering
+
+**Core Objectives:**
+- Build hybrid search capabilities (semantic + keyword)
+- Implement re-ranking for improved context relevance
+- Deploy hermeneutics filter for theological accuracy
+- Create citation and source tracking system
+
+**Key Deliverables:**
+- Advanced RAG pipeline with re-ranking
+- Hermeneutics filter implementation and validation
+- Source citation and provenance tracking
+- Query optimization and response caching
+- Theological accuracy validation against golden dataset
+
+#### Phase 5: User Interface & Experience Enhancement (Weeks 21-26)
+**Primary Goal:** Deliver intuitive admin and user interfaces
+
+**Core Objectives:**
+- Build comprehensive admin dashboard
+- Create chat interface with editor panel integration
+- Implement drag-and-drop document management
+- Deploy responsive design across all platforms
+
+**Key Deliverables:**
+- Admin dashboard with system metrics and management tools
+- User chat interface with side-panel editor
+- Document management interface with real-time status
+- Mobile-responsive design implementation
+- User acceptance testing and feedback integration
+
+#### Phase 6: Export & Integration Features (Weeks 27-30)
+**Primary Goal:** Complete the content creation and export ecosystem
+
+**Core Objectives:**
+- Build conversational formatting system
+- Implement PDF and Markdown export capabilities
+- Create template-based output formatting
+- Establish integration readiness for future extensions
+
+**Key Deliverables:**
+- Intent recognition for formatting commands
+- PDF and Markdown export functionality
+- Template-based output formatting
+- API documentation for future integrations
+- Performance optimization and load testing
+
+### Detailed Timeline & Milestones
+
+| Phase | Duration | Key Milestones | Success Criteria |
+|-------|----------|----------------|------------------|
+| **Phase 1** | 4 weeks | Week 2: Dev environment stabilized<br>Week 4: CI/CD pipeline operational | - All developers can run system locally<br>- Automated deployments to production<br>- Monitoring dashboards operational |
+| **Phase 2** | 4 weeks | Week 6: Authentication system deployed<br>Week 8: User management operational | - Secure login/logout functionality<br>- Admin user approval process<br>- Role-based access control enforced |
+| **Phase 3** | 6 weeks | Week 11: Document upload functional<br>Week 14: Processing pipeline stable | - Biblical and theological documents processing<br>- Real-time status updates working<br>- Error handling and recovery operational |
+| **Phase 4** | 6 weeks | Week 17: Basic RAG operational<br>Week 20: Advanced RAG with hermeneutics | - Accurate theological responses<br>- Source citation working<br>- Hermeneutics filter validated |
+| **Phase 5** | 6 weeks | Week 23: Admin dashboard complete<br>Week 26: User chat interface polished | - Intuitive admin tools operational<br>- Chat interface user-tested<br>- Responsive design implemented |
+| **Phase 6** | 4 weeks | Week 28: Export functionality deployed<br>Week 30: System optimization complete | - PDF/Markdown export working<br>- Performance benchmarks met<br>- Documentation complete |
+
+### Resource Requirements
+
+#### Technical Infrastructure
+- **Development Environment**: Local development setup for 2-3 developers
+- **Staging Environment**: DigitalOcean droplet (4GB RAM, 2 vCPUs) for testing
+- **Production Environment**: DigitalOcean droplet (8GB RAM, 4 vCPUs) with backup systems
+- **Database Services**: Supabase Pro plan for vector storage and PostgreSQL hosting
+- **External APIs**: OpenAI API access (GPT-4 and embeddings) with appropriate rate limits
+- **Monitoring**: Application monitoring and error tracking service
+
+#### Human Resources
+- **Lead Developer** (1.0 FTE): Full-stack development, architecture decisions, code review
+- **Backend Developer** (0.75 FTE): PocketFlow implementation, API development, database design
+- **Frontend Developer** (0.5 FTE): React/TypeScript UI development, responsive design
+- **DevOps Specialist** (0.25 FTE): CI/CD, deployment automation, monitoring setup
+- **Product Owner** (0.5 FTE): Requirements clarification, user acceptance testing, stakeholder communication
+- **Theological Subject Matter Expert** (0.25 FTE): Hermeneutics filter design, content validation
+
+#### Development Tools & Services
+- **Version Control**: GitHub repository with protected main branch
+- **Project Management**: Linear or Jira for epic and story tracking
+- **Communication**: Slack workspace for team coordination
+- **Testing**: Pytest for backend, Jest/React Testing Library for frontend
+- **Code Quality**: ESLint, Prettier, Black, mypy for code standards
+- **Documentation**: Confluence or Notion for technical documentation
+
+### Dependencies & Critical Path Analysis
+
+#### Critical Path Dependencies
+1. **Phase 1 → Phase 2**: Stable development environment required before authentication implementation
+2. **Phase 2 → Phase 3**: Authentication system must be operational before document processing
+3. **Phase 3 → Phase 4**: Document processing pipeline required before RAG implementation
+4. **Phase 4 → Phase 5**: RAG system needed before user interface can be functional
+5. **Phase 5 → Phase 6**: User interface required before export features can be tested
+
+#### External Dependencies
+- **Supabase Service Availability**: Vector database functionality is critical for RAG operations
+- **OpenAI API Stability**: Both embedding generation and text generation depend on OpenAI services
+- **DigitalOcean Infrastructure**: Deployment and hosting infrastructure availability
+- **Third-party Library Updates**: PocketFlow, FastAPI, React ecosystem stability
+
+#### Risk Mitigation for Dependencies
+- **Database Backup Strategy**: Daily automated backups with point-in-time recovery
+- **API Redundancy**: Implement fallback mechanisms for OpenAI API outages
+- **Infrastructure Monitoring**: Automated alerts for service degradation
+- **Library Version Pinning**: Exact version specifications to prevent unexpected updates
+
+### Risk Assessment & Mitigation Strategies
+
+#### High-Risk Areas
+
+| Risk Category | Risk Description | Probability | Impact | Mitigation Strategy |
+|---------------|------------------|-------------|--------|-------------------|
+| **Technical Debt** | Legacy code incompatibility with PocketFlow | High | High | Incremental migration with parallel systems |
+| **Data Migration** | Existing document data corruption during migration | Medium | High | Comprehensive backup and rollback procedures |
+| **API Rate Limits** | OpenAI API throttling during high usage | Medium | Medium | Implement request queuing and caching |
+| **Performance** | System performance degradation with large document corpus | Medium | High | Load testing and optimization in each phase |
+| **Security** | Authentication vulnerabilities in brownfield system | Medium | High | Security audit and penetration testing |
+
+#### Medium-Risk Areas
+
+| Risk Category | Risk Description | Probability | Impact | Mitigation Strategy |
+|---------------|------------------|-------------|--------|-------------------|
+| **User Adoption** | Admin users resist new interface paradigms | Medium | Medium | Early user feedback and training sessions |
+| **Integration** | Supabase vector search performance issues | Low | High | Performance benchmarking and query optimization |
+| **Deployment** | CI/CD pipeline configuration errors | Medium | Medium | Staging environment testing and rollback procedures |
+| **Resource** | Key developer availability during critical phases | Medium | Medium | Cross-training and documentation requirements |
+
+### Success Criteria & Validation
+
+#### Phase-Specific Success Metrics
+
+**Phase 1 Success Criteria:**
+- [ ] 100% of developers can run the system locally within 15 minutes
+- [ ] Automated deployment completes within 10 minutes with zero manual intervention
+- [ ] System uptime monitoring shows 99.9% availability
+- [ ] All existing documents migrate successfully with data integrity verification
+
+**Phase 2 Success Criteria:**
+- [ ] User registration and approval workflow processes 100% of test scenarios
+- [ ] Authentication system passes security audit with no critical vulnerabilities
+- [ ] Admin and user role separation enforced across all endpoints
+- [ ] Session management handles concurrent users without token conflicts
+
+**Phase 3 Success Criteria:**
+- [ ] Document processing pipeline handles biblical and theological content with 95% success rate
+- [ ] Real-time status updates deliver within 2 seconds of status changes
+- [ ] Error handling and recovery mechanisms resolve 90% of processing failures
+- [ ] PocketFlow nodes maintain <150 lines of code and single responsibility
+
+**Phase 4 Success Criteria:**
+- [ ] RAG system achieves 85% accuracy on theological golden dataset
+- [ ] Source citations provide verifiable references for 100% of responses
+- [ ] Hermeneutics filter prevents theologically inaccurate responses in validation testing
+- [ ] Response time averages under 3 seconds for typical queries
+
+**Phase 5 Success Criteria:**
+- [ ] Admin dashboard provides complete system visibility and management capabilities
+- [ ] User chat interface passes usability testing with 4.5/5 average rating
+- [ ] Responsive design functions across mobile, tablet, and desktop platforms
+- [ ] Document management interface handles concurrent admin operations
+
+**Phase 6 Success Criteria:**
+- [ ] Export functionality generates properly formatted PDF and Markdown files
+- [ ] Conversational formatting responds accurately to 90% of user commands
+- [ ] System performance maintains response times under load testing scenarios
+- [ ] Documentation enables new developers to contribute within one week
+
+### Rollback & Contingency Plans
+
+#### Rollback Strategy by Phase
+
+**Phase 1 Rollback:**
+- **Trigger Conditions**: Development environment setup fails, CI/CD pipeline corrupts production
+- **Rollback Procedure**: Revert to manual deployment process, restore from pre-migration database backup
+- **Recovery Time**: 2-4 hours
+- **Data Loss Risk**: Minimal (configuration changes only)
+
+**Phase 2 Rollback:**
+- **Trigger Conditions**: Authentication system security breach, user approval workflow failure
+- **Rollback Procedure**: Disable new authentication, restore previous access control mechanisms
+- **Recovery Time**: 1-2 hours
+- **Data Loss Risk**: User registration data may be lost
+
+**Phase 3 Rollback:**
+- **Trigger Conditions**: Document processing pipeline failure rate >20%, data corruption detected
+- **Rollback Procedure**: Disable new processing system, restore previous document handling
+- **Recovery Time**: 4-6 hours
+- **Data Loss Risk**: Recently processed documents may need reprocessing
+
+**Phase 4 Rollback:**
+- **Trigger Conditions**: RAG system accuracy <70%, hermeneutics filter failures
+- **Rollback Procedure**: Revert to basic search functionality, disable advanced features
+- **Recovery Time**: 2-3 hours
+- **Data Loss Risk**: Advanced search configurations lost
+
+**Phase 5 Rollback:**
+- **Trigger Conditions**: User interface renders incorrectly, admin tools non-functional
+- **Rollback Procedure**: Deploy previous UI version, restore admin tool functionality
+- **Recovery Time**: 1-2 hours
+- **Data Loss Risk**: UI customizations and preferences lost
+
+**Phase 6 Rollback:**
+- **Trigger Conditions**: Export functionality corrupts content, formatting system errors
+- **Rollback Procedure**: Disable export features, maintain core chat functionality
+- **Recovery Time**: 1 hour
+- **Data Loss Risk**: Export templates and formatting preferences lost
+
+#### Emergency Procedures
+
+**Complete System Rollback:**
+- **Conditions**: Multiple system failures, data integrity compromised, security breach
+- **Procedure**: 
+  1. Activate maintenance mode (5 minutes)
+  2. Restore from last known good backup (30-60 minutes)
+  3. Verify data integrity and system functionality (30 minutes)
+  4. Communicate status to stakeholders (15 minutes)
+- **Maximum Downtime**: 2 hours
+- **Communication Plan**: Automated stakeholder notifications, status page updates
+
+**Data Recovery Procedures:**
+- **Daily Backups**: Automated Supabase and SQLite database backups
+- **Point-in-Time Recovery**: Available for previous 30 days
+- **Disaster Recovery**: Geographic backup replication for critical data
+- **Testing Schedule**: Monthly backup recovery tests
+
+### Quality Assurance & Testing Strategy
+
+#### Testing Framework by Phase
+- **Unit Testing**: Minimum 80% code coverage for all new code
+- **Integration Testing**: API endpoint testing and database interaction validation
+- **End-to-End Testing**: Browser-based user workflow testing using Browser MCP
+- **Performance Testing**: Load testing at 2x expected concurrent user capacity
+- **Security Testing**: Automated security scanning and manual penetration testing
+
+#### Continuous Quality Measures
+- **Code Review**: All code changes require peer review before merging
+- **Automated Testing**: CI/CD pipeline blocks deployment on test failures
+- **User Acceptance Testing**: Stakeholder validation required for each phase completion
+- **Performance Monitoring**: Automated alerts for response time degradation
+- **Error Tracking**: Comprehensive error logging and alerting system
+
+This implementation plan provides a structured, risk-aware approach to restoring and enhancing the Theo theological research system while maintaining operational continuity and delivering incremental value throughout the development process.

@@ -1,0 +1,13 @@
+# Dev Agent Implementation Checklist
+- [ ] Create authentication service in `apps/web/src/services/`
+- [ ] Implement authentication context
+- [ ] Create LoginPage component
+- [ ] Create RegisterPage component  
+- [ ] Create DashboardPage placeholder
+- [ ] Add protected route wrapper
+- [ ] Update App.tsx with new routes
+- [ ] Add JWT token storage and management
+- [ ] Implement form validation
+- [ ] Add loading states and error handling
+- [ ] Test complete authentication flow
+- [ ] Ensure responsive design

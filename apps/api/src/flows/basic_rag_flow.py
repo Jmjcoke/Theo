@@ -12,8 +12,8 @@ import asyncio
 from typing import Dict, Any
 from pocketflow import AsyncFlow
 
-from ..nodes.chat.supabase_edge_search_node import SupabaseEdgeSearchNode
-from ..nodes.chat.re_ranker_node import ReRankerNode
+from ..nodes.chat.supabase_edge_search_node_deprecated import SupabaseEdgeSearchNode
+from ..nodes.chat.compact_re_ranker_node import CompactReRankerNode
 from ..nodes.chat.simple_generator_node import SimpleGeneratorNode
 # Temporarily removed performance_utils imports due to missing config settings
 # from ..utils.performance_utils import (
@@ -42,7 +42,7 @@ class BasicRAGFlow(AsyncFlow):
         """Initialize the RAG flow with connected nodes"""
         # Initialize nodes - Edge Function handles query embedding
         self.edge_search = SupabaseEdgeSearchNode(result_limit=10)
-        self.re_ranker = ReRankerNode(
+        self.re_ranker = CompactReRankerNode(
             model="gpt-4",
             top_k=5,
             temperature=0.1

@@ -14,6 +14,7 @@ export { apiService, default as ApiService, ApiError } from './api';
 export { sseService, default as SSEService } from './sse';
 export { chatService, default as ChatService } from './chatService';
 export { adminService, default as AdminService } from './adminService';
+export { editorService, default as EditorService } from './editorService';
 
 // ============================================================================
 // ERROR HANDLING
@@ -34,6 +35,23 @@ export {
 // ============================================================================
 
 export { useDocumentStore, useDocumentSelectors } from '../stores/documentStore';
+
+// ============================================================================
+// EDITOR TYPES
+// ============================================================================
+
+export type {
+  EditorDocument,
+  EditorTemplate,
+  DocumentType as EditorDocumentType,
+  DocumentStatus,
+  CitationFormat,
+  ExportFormat,
+  CreateDocumentRequest,
+  UpdateDocumentRequest,
+  Citation,
+  UserDocumentStats
+} from '../types/editor';
 
 // ============================================================================
 // TYPE EXPORTS

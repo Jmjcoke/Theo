@@ -25,6 +25,7 @@ from src.api.chat import router as chat_router
 from src.api.export import router as export_router
 from src.api.simple_upload_test import router as upload_test_router
 from src.api.simple_document_upload import router as simple_upload_router
+from src.api.editor_routes import router as editor_router
 from src.utils.database_utils import init_database
 from src.core.redis_client import redis_client
 
@@ -69,6 +70,7 @@ app.include_router(sse_router, tags=["Server-Sent Events"])
 app.include_router(admin_router, prefix="/api", tags=["Admin"])
 app.include_router(chat_router, prefix="/api", tags=["Chat"])
 app.include_router(export_router, prefix="/api", tags=["Export"])
+app.include_router(editor_router, tags=["Document Editor"])
 app.include_router(upload_test_router, tags=["Upload Test"])
 
 

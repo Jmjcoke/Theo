@@ -1,0 +1,14 @@
+# QA Agent Review Checklist
+- [ ] Verify PocketFlow pattern compliance
+- [ ] Confirm Node line limit adherence (≤150)
+- [ ] Validate cookbook reference inclusion
+- [ ] Test JWT token generation and validation
+- [ ] Verify password verification works correctly
+- [ ] Test user status checking (approved only)
+- [ ] Confirm secure credential handling
+- [ ] Test error handling scenarios
+- [ ] Validate login with valid credentials
+- [ ] Test login with invalid credentials
+- [ ] Test login with unapproved user
+- [ ] Confirm acceptance criteria fulfillment
+- [ ] Update agent memory with results

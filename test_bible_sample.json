@@ -1,0 +1,52 @@
+{
+  "verses": [
+    {
+      "book": "Genesis",
+      "chapter": 1,
+      "verse": 1,
+      "text": "In the beginning God created the heavens and the earth."
+    },
+    {
+      "book": "Genesis",
+      "chapter": 1,
+      "verse": 2,
+      "text": "Now the earth was formless and empty, darkness was over the surface of the deep, and the Spirit of God was hovering over the waters."
+    },
+    {
+      "book": "Genesis",
+      "chapter": 1,
+      "verse": 3,
+      "text": "And God said, \"Let there be light,\" and there was light."
+    },
+    {
+      "book": "Genesis",
+      "chapter": 1,
+      "verse": 4,
+      "text": "God saw that the light was good, and he separated the light from the darkness."
+    },
+    {
+      "book": "Genesis",
+      "chapter": 1,
+      "verse": 5,
+      "text": "God called the light \"day,\" and the darkness he called \"night.\" And there was evening, and there was morning—the first day."
+    },
+    {
+      "book": "John",
+      "chapter": 3,
+      "verse": 16,
+      "text": "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life."
+    },
+    {
+      "book": "Psalm",
+      "chapter": 23,
+      "verse": 1,
+      "text": "The LORD is my shepherd, I lack nothing."
+    },
+    {
+      "book": "Psalm",
+      "chapter": 23,
+      "verse": 2,
+      "text": "He makes me lie down in green pastures, he leads me beside quiet waters."
+    }
+  ]
+}

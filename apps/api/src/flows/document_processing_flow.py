@@ -14,9 +14,9 @@ from databases import Database
 from ..nodes.documents import (
     FileLoaderNode,
     DocumentChunkerNode, 
-    EmbeddingGeneratorNode,
-    SupabaseStorageNode
+    EmbeddingGeneratorNode
 )
+from ..nodes.documents.compact_supabase_http_storage_node import CompactSupabaseHttpStorageNode
 
 
 class DocumentProcessingFlow:
@@ -43,7 +43,7 @@ class DocumentProcessingFlow:
         self.file_loader = FileLoaderNode(database=database)
         self.chunker = DocumentChunkerNode()
         self.embedder = EmbeddingGeneratorNode()
-        self.storage = SupabaseStorageNode(sqlite_database=database)
+        self.storage = CompactSupabaseHttpStorageNode()
         
     async def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -102,9 +102,9 @@ class DocumentProcessingFlow:
             
             # Step 4: Supabase Storage
             self.logger.info("Step 4: Storing embedded chunks in Supabase")
-            prep_data = await self.storage.prep(shared_store)
-            storage_exec_result = await self.storage.exec(prep_data)
-            await self.storage.post(storage_exec_result, shared_store)
+            storage_result = await self.storage._run_async(shared_store)
+            if not isinstance(storage_result, dict) or storage_result.get("next_state") not in ["stored"]:
+                return await self._handle_failure(shared_store, f"Storage failed: {shared_store.get('storage_error', 'Unknown storage error')}")
             
             # Final success result
             flow_completion_time = datetime.now(timezone.utc).isoformat()

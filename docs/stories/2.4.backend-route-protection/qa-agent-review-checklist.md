@@ -1,0 +1,14 @@
+# QA Agent Review Checklist
+- [ ] Verify PocketFlow pattern compliance
+- [ ] Confirm Node line limit adherence (≤150)
+- [ ] Validate cookbook reference inclusion
+- [ ] Test JWT validation in middleware
+- [ ] Verify role-based access control works
+- [ ] Test 401 Unauthorized responses
+- [ ] Test 403 Forbidden responses
+- [ ] Confirm user endpoint allows users and admins
+- [ ] Confirm admin endpoint allows admins only
+- [ ] Test without authorization header
+- [ ] Test with invalid tokens
+- [ ] Confirm acceptance criteria fulfillment
+- [ ] Update agent memory with results

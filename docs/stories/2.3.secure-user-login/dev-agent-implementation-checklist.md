@@ -1,0 +1,15 @@
+# Dev Agent Implementation Checklist
+- [ ] Create UserLoginNode in `apps/api/src/nodes/auth/`
+- [ ] Create JWTValidationNode for token validation
+- [ ] Implement with AsyncNode for I/O operations
+- [ ] Add cookbook reference to docstring
+- [ ] Ensure implementation ≤150 lines
+- [ ] Install PyJWT dependency (`pip install PyJWT`)
+- [ ] Create FastAPI login route
+- [ ] Add environment configuration for JWT secrets
+- [ ] Implement password verification
+- [ ] Add user status checking
+- [ ] Create JWT token generation
+- [ ] Add token validation functionality
+- [ ] Write comprehensive unit tests
+- [ ] Test login flow end-to-end

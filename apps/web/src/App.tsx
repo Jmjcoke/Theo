@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import Index from '@/pages/Index';
 import ChatInterface from '@/pages/ChatInterface';
+import DocumentEditor from '@/pages/DocumentEditor';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import NotFound from '@/pages/NotFound';
@@ -17,6 +18,8 @@ const App: FC = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/chat" element={<ChatInterface />} />
+          <Route path="/editor" element={<DocumentEditor />} />
+          <Route path="/editor/:documentId" element={<DocumentEditor />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/admin" element={<AdminDashboard />} />

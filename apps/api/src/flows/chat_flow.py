@@ -11,11 +11,11 @@ import time
 from typing import Dict, Any
 from pocketflow import AsyncFlow
 
-from ..nodes.chat.intent_recognition_node import IntentRecognitionNode
+from ..nodes.chat.compact_intent_recognition_node import CompactIntentRecognitionNode
 from .basic_rag_flow import BasicRAGFlow
 from .advanced_rag_flow import AdvancedRAGFlow
 from ..nodes.chat.simple_generator_node import SimpleGeneratorNode
-from ..nodes.chat.formatting_node import FormattingNode
+from ..nodes.chat.compact_formatting_node import CompactFormattingNode
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +115,8 @@ class ChatFlow(AsyncFlow):
     def _safe_initialize_intent_recognition(self):
         """Safely initialize IntentRecognitionNode with error handling"""
         try:
-            from ..nodes.chat.intent_recognition_node import IntentRecognitionNode
-            return IntentRecognitionNode(
+            from ..nodes.chat.compact_intent_recognition_node import CompactIntentRecognitionNode
+            return CompactIntentRecognitionNode(
                 model="gpt-4",
                 temperature=0.1
             )
@@ -162,8 +162,8 @@ class ChatFlow(AsyncFlow):
     def _safe_initialize_formatting_node(self):
         """Safely initialize FormattingNode with error handling"""
         try:
-            from ..nodes.chat.formatting_node import FormattingNode
-            return FormattingNode(
+            from ..nodes.chat.compact_formatting_node import CompactFormattingNode
+            return CompactFormattingNode(
                 model="gpt-4",
                 temperature=0.3
             )
@@ -189,7 +189,7 @@ class ChatFlow(AsyncFlow):
             'intent_recognition': {
                 'instance': self.intent_recognition,
                 'required_methods': ['_run_async', 'prep_async', 'exec_async', 'post_async'],
-                'expected_type': 'IntentRecognitionNode'
+                'expected_type': 'CompactIntentRecognitionNode'
             },
             'basic_rag_flow': {
                 'instance': self.basic_rag_flow,
@@ -209,7 +209,7 @@ class ChatFlow(AsyncFlow):
             'formatting_node': {
                 'instance': self.formatting_node,
                 'required_methods': ['_run_async', 'prep_async', 'exec_async', 'post_async'],
-                'expected_type': 'FormattingNode'
+                'expected_type': 'CompactFormattingNode'
             }
         }
         
