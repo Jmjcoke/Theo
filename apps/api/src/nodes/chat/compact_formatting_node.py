@@ -1,9 +1,4 @@
-"""
-CompactFormattingNode for conversational text formatting requests.
-
-Streamlined replacement for formatting_node.py to comply with PocketFlow 150-line limit.
-Handles common formatting commands like bullet points, summaries, tables, etc.
-"""
+"""CompactFormattingNode for conversational text formatting requests."""
 
 import asyncio
 import logging
@@ -50,20 +45,27 @@ class CompactFormattingNode(AsyncNode):
             if not command_type:
                 return {"error": "Try commands like 'make bullet points', 'summarize', or 'format as table'."}
             
-            return {"success": True}
+            return {
+                "success": True,
+                "session_id": shared_store['session_id'],
+                "message": shared_store['message'],
+                "previous_response": previous_response,
+                "command_type": command_type
+            }
         except Exception as e:
             logger.error(f"CompactFormattingNode prep error: {e}")
             return {"error": "Unable to retrieve conversation history. Please try again."}
     
-    async def exec_async(self, shared_store: Dict[str, Any]) -> dict:
+    async def exec_async(self, prep_result: Dict[str, Any]) -> dict:
         """Execute LLM formatting request with specialized prompt."""
         try:
-            previous_response = shared_store.get('previous_response')
-            if not previous_response:
-                previous_response = await self._retrieve_previous_response(shared_store['session_id'])
+            # Check if prep failed
+            if not prep_result.get('success', False):
+                return prep_result  # Return the error from prep
             
-            message = shared_store['message']
-            command_type = self._parse_formatting_command(message)
+            previous_response = prep_result['previous_response']
+            message = prep_result['message']
+            command_type = prep_result['command_type']
             
             if not command_type or not previous_response:
                 return {"success": False, "error": "Invalid formatting request"}
@@ -98,10 +100,9 @@ class CompactFormattingNode(AsyncNode):
                 "original_text": shared_store.get('previous_response', '')
             }
     
-    async def post_async(self, shared_store: Dict[str, Any]) -> dict:
+    async def post_async(self, shared_store: Dict[str, Any], prep_result: Dict[str, Any], exec_result: Dict[str, Any]) -> dict:
         """Store formatting results in shared store."""
         try:
-            exec_result = shared_store.get('exec_result', {})
             
             if exec_result.get('success', False):
                 shared_store['generated_answer'] = exec_result['generated_answer']
@@ -147,5 +148,4 @@ class CompactFormattingNode(AsyncNode):
                             if message.get('role') == 'assistant' and message.get('content'):
                                 return message['content']
             return None
-        except Exception:
-            return None
+        except Exception: return None

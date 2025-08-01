@@ -1,9 +1,4 @@
-"""
-CompactIntentRecognitionNode for classifying user input as new_query or format_request.
-
-Streamlined replacement for intent_recognition_node.py to comply with PocketFlow 150-line limit.
-Uses IntentPatterns utility for classification logic.
-"""
+"""CompactIntentRecognitionNode for classifying user input as new_query or format_request."""
 
 from typing import Dict, Any
 from pocketflow import AsyncNode
@@ -37,7 +32,7 @@ class CompactIntentRecognitionNode(AsyncNode):
             if not validated_message:
                 return {"error": "Message cannot be empty after sanitization"}
             
-            return {"success": True}
+            return {"success": True, "validated_message": validated_message}
             
         except KeyError as e:
             logger.error(f"CompactIntentRecognitionNode prep KeyError: {str(e)}")
@@ -48,10 +43,14 @@ class CompactIntentRecognitionNode(AsyncNode):
             logger.error(f"Available keys in shared_store: {list(shared_store.keys())}")
             return {"error": f"Intent recognition preparation failed: {str(e)}"}
     
-    async def exec_async(self, shared_store: Dict[str, Any]) -> dict:
+    async def exec_async(self, prep_result: Dict[str, Any]) -> dict:
         """Classify user input intent using OpenAI GPT-4."""
         try:
-            message = shared_store['message'].strip()
+            # Check if prep failed
+            if not prep_result.get('success', False):
+                return prep_result  # Return the error from prep
+            
+            message = prep_result['validated_message']
             
             # Try quick pattern-based classification first
             quick_result = IntentPatterns.quick_intent_classification(message)

@@ -422,11 +422,14 @@ class ChatFlow(AsyncFlow):
     async def run(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the complete chat pipeline with intent-based routing"""
         try:
-            # First run intent recognition
+            # First prepare the shared store
+            await self.prep_async(shared_store)
+            
+            # Then run intent recognition
             intent_result = await self.intent_recognition._run_async(shared_store)
             
             # Check for correct return format from AsyncNode
-            if not isinstance(intent_result, dict) or intent_result.get("next_state") != "success":
+            if not isinstance(intent_result, dict) or intent_result.get("next_state") != "classified":
                 shared_store['chat_error'] = "Intent recognition failed"
                 return await self.post_async(shared_store, shared_store, "failed")
             

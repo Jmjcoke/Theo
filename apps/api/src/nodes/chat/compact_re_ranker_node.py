@@ -1,8 +1,4 @@
-"""
-CompactReRankerNode for improving contextual relevance using LLM-based theological re-ranking.
-
-Streamlined replacement for re_ranker_node.py to comply with PocketFlow 150-line limit.
-"""
+"""CompactReRankerNode for improving contextual relevance using LLM-based theological re-ranking."""
 
 from typing import Dict, Any
 from pocketflow import AsyncNode
@@ -37,17 +33,25 @@ class CompactReRankerNode(AsyncNode):
                 if not isinstance(result, dict) or 'content' not in result:
                     return {"error": f"Invalid search result {i}: missing content"}
             
-            return {"success": True}
+            return {
+                "success": True,
+                "query": query,
+                "search_results": search_results
+            }
             
         except Exception as e:
             logger.error(f"CompactReRankerNode prep error: {str(e)}")
             return {"error": f"Re-ranking preparation failed: {str(e)}"}
     
-    async def exec_async(self, shared_store: Dict[str, Any]) -> dict:
+    async def exec_async(self, prep_result: Dict[str, Any]) -> dict:
         """Execute LLM-based theological re-ranking."""
         try:
-            query = shared_store.get('query') or shared_store.get('user_query')
-            search_results = shared_store['search_results']
+            # Check if prep failed
+            if not prep_result.get('success', False):
+                return prep_result  # Return the error from prep
+            
+            query = prep_result['query']
+            search_results = prep_result['search_results']
             
             if len(search_results) <= 1:
                 return {
@@ -92,10 +96,9 @@ class CompactReRankerNode(AsyncNode):
                 'reranked_count': 0
             }
     
-    async def post_async(self, shared_store: Dict[str, Any]) -> dict:
+    async def post_async(self, shared_store: Dict[str, Any], prep_result: Dict[str, Any], exec_result: Dict[str, Any]) -> dict:
         """Store re-ranking results in shared store."""
         try:
-            exec_result = shared_store.get('exec_result', {})
             
             if exec_result.get('success', False):
                 shared_store['reranked_results'] = exec_result['reranked_results']
@@ -137,7 +140,6 @@ class CompactReRankerNode(AsyncNode):
             
             reranked = []
             used_indices = set()
-            
             for idx in numbers:
                 if idx not in used_indices:
                     reranked.append(original_results[idx])
@@ -145,7 +147,5 @@ class CompactReRankerNode(AsyncNode):
             for idx, result in enumerate(original_results):
                 if idx not in used_indices:
                     reranked.append(result)
-            
             return reranked
-        except Exception:
-            return original_results
+        except Exception: return original_results
