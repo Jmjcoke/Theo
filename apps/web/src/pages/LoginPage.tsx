@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { authService } from "@/services/authService";
+import { useAuth } from "@/contexts/AuthContext";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { login, isLoading } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -19,15 +19,16 @@ const LoginPage = () => {
       return;
     }
 
-    setIsLoading(true);
     setError(null);
     
     try {
       console.log("Login attempted with:", { email, password });
-      const response = await authService.login(email, password);
+      await login(email, password);
       
-      // Login successful - redirect based on user role
-      if (response.user_role === 'admin') {
+      // Login successful - redirect to admin for admin users, otherwise chat
+      // The AuthContext will have the updated user info
+      const userData = JSON.parse(localStorage.getItem('theo_user_data') || '{}');
+      if (userData.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/chat');
@@ -35,8 +36,6 @@ const LoginPage = () => {
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 

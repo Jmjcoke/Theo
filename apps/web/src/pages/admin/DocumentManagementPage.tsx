@@ -12,106 +12,157 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Document {
+  id: string;
+  filename: string;
+  document_type: string;
+  processing_status: string;
+  uploaded_by: string;
+  uploaded_at: string;
+  processed_at?: string;
+  chunk_count?: number;
+  metadata?: {
+    size?: string;
+    pages?: number;
+  };
+}
+
+interface DocumentListResponse {
+  documents: Document[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
 const DocumentManagementPage = () => {
-  const documents = [
-    {
-      filename: "Augustine_Confessions.pdf",
-      type: "PDF",
-      status: "Active",
-      date: "2024-01-15",
-      size: "2.4 MB"
-    },
-    {
-      filename: "Aquinas_Summa_Theologica.pdf",
-      type: "PDF",
-      status: "Processing",
-      date: "2024-01-14",
-      size: "15.7 MB"
-    },
-    {
-      filename: "Calvin_Institutes.pdf",
-      type: "PDF",
-      status: "Active",
-      date: "2024-01-14",
-      size: "8.2 MB"
-    },
-    {
-      filename: "Luther_95_Theses.pdf",
-      type: "PDF",
-      status: "Failed",
-      date: "2024-01-13",
-      size: "0.5 MB"
-    },
-    {
-      filename: "Barth_Church_Dogmatics.pdf",
-      type: "PDF",
-      status: "Active",
-      date: "2024-01-12",
-      size: "25.1 MB"
-    },
-    {
-      filename: "Wesley_Sermons.docx",
-      type: "DOCX",
-      status: "Active",
-      date: "2024-01-11",
-      size: "3.8 MB"
-    },
-    {
-      filename: "Edwards_Religious_Affections.pdf",
-      type: "PDF",
-      status: "Active",
-      date: "2024-01-10",
-      size: "4.2 MB"
-    },
-    {
-      filename: "Bonhoeffer_Cost_of_Discipleship.pdf",
-      type: "PDF",
-      status: "Active",
-      date: "2024-01-09",
-      size: "6.5 MB"
-    },
-    {
-      filename: "Spurgeon_Treasury_of_David.pdf",
-      type: "PDF",
-      status: "Processing",
-      date: "2024-01-08",
-      size: "18.9 MB"
-    },
-    {
-      filename: "Owen_Glory_of_Christ.pdf",
-      type: "PDF",
-      status: "Active",
-      date: "2024-01-07",
-      size: "2.1 MB"
-    }
-  ];
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0
+  });
+  const { user } = useAuth();
 
-  const handleUpload = () => {
-    // TODO: Implement upload logic
-    console.log("Upload document clicked");
+  const fetchDocuments = async (page: number = 1) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Try the real endpoint first, fall back to test if needed
+      let response = await fetch(`http://localhost:8001/api/admin/documents/test?page=${page}&limit=20`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch documents: ${response.statusText}`);
+      }
+      
+      const data: DocumentListResponse = await response.json();
+      setDocuments(data.documents);
+      setPagination(data.pagination);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch documents');
+      console.error('Error fetching documents:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (filename: string) => {
-    // TODO: Implement delete logic
-    console.log("Deleting document:", filename);
+  useEffect(() => {
+    fetchDocuments(currentPage);
+  }, [currentPage]);
+
+  const handleDelete = async (documentId: string, filename: string) => {
+    if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // For now, just show an alert since we need proper auth
+      alert('Delete functionality will be implemented once authentication is working');
+      
+      // TODO: Implement actual delete when auth is working
+      // const response = await fetch(`http://localhost:8001/api/admin/documents/${documentId}`, {
+      //   method: 'DELETE',
+      //   headers: {
+      //     'Authorization': `Bearer ${token}`,
+      //     'Content-Type': 'application/json'
+      //   }
+      // });
+      
+      // if (response.ok) {
+      //   await fetchDocuments(currentPage);
+      // }
+    } catch (err) {
+      console.error('Error deleting document:', err);
+      alert('Failed to delete document');
+    }
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Active":
-        return <Badge className="bg-success/10 text-success hover:bg-success/20">Active</Badge>;
-      case "Processing":
-        return <Badge className="bg-warning/10 text-warning hover:bg-warning/20">Processing</Badge>;
-      case "Failed":
-        return <Badge variant="destructive">Failed</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+    const statusMap = {
+      'completed': { label: 'Active', className: 'bg-success/10 text-success hover:bg-success/20' },
+      'processing': { label: 'Processing', className: 'bg-warning/10 text-warning hover:bg-warning/20' },
+      'failed': { label: 'Failed', className: 'bg-destructive/10 text-destructive hover:bg-destructive/20' },
+      'queued': { label: 'Queued', className: 'bg-blue-100 text-blue-800 hover:bg-blue-200' }
+    };
+    
+    const config = statusMap[status as keyof typeof statusMap] || { label: status, className: 'bg-gray-100 text-gray-800' };
+    return <Badge className={config.className}>{config.label}</Badge>;
+  };
+
+  const getDocumentType = (document_type: string) => {
+    return document_type === 'biblical' ? 'BIBLICAL' : 'THEOLOGICAL';
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return dateString;
     }
   };
 
+  const formatSize = (metadata?: { size?: string; pages?: number }) => {
+    if (metadata?.size) return metadata.size;
+    if (metadata?.pages) return `${metadata.pages} pages`;
+    return 'Unknown';
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading documents...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-red-600">Error: {error}</div>
+        <div className="text-center mt-4">
+          <Button onClick={() => fetchDocuments(currentPage)}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleUpload = () => {
+    // TODO: Implement upload logic
+    alert('Upload functionality will be implemented next');
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Document Library</h1>
@@ -125,7 +176,7 @@ const DocumentManagementPage = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Documents ({documents.length})</CardTitle>
+          <CardTitle>All Documents ({pagination.total})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -140,24 +191,24 @@ const DocumentManagementPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {documents.map((doc, index) => (
-                <TableRow key={index}>
+              {documents.map((doc) => (
+                <TableRow key={doc.id}>
                   <TableCell className="font-medium max-w-xs truncate">
                     {doc.filename}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{doc.type}</Badge>
+                    <Badge variant="outline">{getDocumentType(doc.document_type)}</Badge>
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(doc.status)}
+                    {getStatusBadge(doc.processing_status)}
                   </TableCell>
-                  <TableCell>{doc.size}</TableCell>
-                  <TableCell>{doc.date}</TableCell>
+                  <TableCell>{formatSize(doc.metadata)}</TableCell>
+                  <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => handleDelete(doc.filename)}
+                      onClick={() => handleDelete(doc.id, doc.filename)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -168,32 +219,62 @@ const DocumentManagementPage = () => {
           </Table>
 
           {/* Pagination */}
-          <div className="mt-6">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious href="#" />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#" isActive>
-                    1
-                  </PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#">2</PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#">3</PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext href="#" />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+          {pagination.pages > 1 && (
+            <div className="mt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) {
+                          setCurrentPage(currentPage - 1);
+                        }
+                      }}
+                    />
+                  </PaginationItem>
+                  
+                  {/* Show page numbers */}
+                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink 
+                          href="#" 
+                          isActive={pageNum === currentPage}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(pageNum);
+                          }}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  {pagination.pages > 5 && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < pagination.pages) {
+                          setCurrentPage(currentPage + 1);
+                        }
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
