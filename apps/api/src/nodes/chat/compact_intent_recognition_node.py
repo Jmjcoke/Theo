@@ -39,8 +39,13 @@ class CompactIntentRecognitionNode(AsyncNode):
             
             return {"success": True}
             
+        except KeyError as e:
+            logger.error(f"CompactIntentRecognitionNode prep KeyError: {str(e)}")
+            logger.error(f"Available keys in shared_store: {list(shared_store.keys())}")
+            return {"error": f"Intent recognition preparation failed: missing key {str(e)}"}
         except Exception as e:
             logger.error(f"CompactIntentRecognitionNode prep error: {str(e)}")
+            logger.error(f"Available keys in shared_store: {list(shared_store.keys())}")
             return {"error": f"Intent recognition preparation failed: {str(e)}"}
     
     async def exec_async(self, shared_store: Dict[str, Any]) -> dict:
@@ -114,10 +119,10 @@ class CompactIntentRecognitionNode(AsyncNode):
                 'confidence': 0.0
             }
     
-    async def post_async(self, shared_store: Dict[str, Any]) -> dict:
+    async def post_async(self, shared_store: Dict[str, Any], prep_result: Dict[str, Any], exec_result: Dict[str, Any]) -> dict:
         """Store intent classification results in shared store."""
         try:
-            exec_result = shared_store.get('exec_result', {})
+            # exec_result is now passed as a parameter
             
             if exec_result.get('success', False):
                 shared_store['intent'] = exec_result['intent']

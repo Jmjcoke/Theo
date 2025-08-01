@@ -13,7 +13,7 @@ This module contains PocketFlow nodes for handling document upload workflow:
 All nodes follow PocketFlow AsyncNode patterns with ≤150 lines per node.
 """
 
-from .document_validation_node import DocumentValidationNode
+from .compact_document_validation_node import CompactDocumentValidationNode as DocumentValidationNode
 from .document_storage_node import DocumentStorageNode
 from .job_dispatch_node import JobDispatchNode
 from .file_loader_node import FileLoaderNode

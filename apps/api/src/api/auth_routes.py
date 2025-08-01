@@ -30,29 +30,13 @@ class LoginResponse(BaseModel):
 
 
 @router.post("/register", response_model=RegistrationResponse, status_code=201)
-async def register_user(registration_data: dict):
+async def register_user(validated_request: RegistrationRequest):
     """
     Public endpoint for user registration
     
     Creates a new user account with 'pending' status for admin review.
     Password must meet security policy requirements.
     """
-    
-    # Validate input with our custom validation that provides proper error messages
-    try:
-        validated_request = RegistrationRequest(**registration_data)
-    except ValidationError as e:
-        # Convert Pydantic validation errors to 400 status
-        error_messages = []
-        for error in e.errors():
-            field = error.get('loc', ['field'])[-1]
-            message = error.get('msg', 'Invalid value')
-            error_messages.append(f"{field}: {message}")
-        
-        raise HTTPException(
-            status_code=400,
-            detail=f"Validation error: {'; '.join(error_messages)}"
-        )
     
     shared_store = {
         "registration_data": validated_request.model_dump()
@@ -73,29 +57,13 @@ async def register_user(registration_data: dict):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login_user(login_data: dict):
+async def login_user(validated_request: LoginRequest):
     """
     Public endpoint for user login
     
     Authenticates user credentials and returns JWT access token
     for approved users only.
     """
-    
-    # Validate input with our custom validation
-    try:
-        validated_request = LoginRequest(**login_data)
-    except ValidationError as e:
-        # Convert Pydantic validation errors to 400 status
-        error_messages = []
-        for error in e.errors():
-            field = error.get('loc', ['field'])[-1]
-            message = error.get('msg', 'Invalid value')
-            error_messages.append(f"{field}: {message}")
-        
-        raise HTTPException(
-            status_code=400,
-            detail=f"Validation error: {'; '.join(error_messages)}"
-        )
     
     shared_store = {
         "login_data": validated_request.model_dump()

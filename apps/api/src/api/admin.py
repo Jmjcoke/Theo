@@ -57,44 +57,7 @@ async def get_dashboard_test() -> Dict[str, Any]:
     }
 
 
-@router.get("/admin/documents/test")
-async def get_documents_test() -> Dict[str, Any]:
-    """
-    Temporary documents list endpoint without authentication for testing.
-    
-    Returns sample documents for testing frontend connectivity.
-    """
-    return {
-        "documents": [
-            {
-                "id": "1",
-                "filename": "bible_study.pdf",
-                "document_type": "biblical",
-                "processing_status": "completed",
-                "uploaded_by": "admin@example.com",
-                "uploaded_at": "2025-01-27T10:00:00Z",
-                "processed_at": "2025-01-27T10:05:00Z",
-                "chunk_count": 45,
-                "metadata": {"pages": 12, "size": "2.5MB"}
-            },
-            {
-                "id": "2", 
-                "filename": "theology_notes.docx",
-                "document_type": "theological",
-                "processing_status": "processing",
-                "uploaded_by": "admin@example.com",
-                "uploaded_at": "2025-01-27T11:00:00Z",
-                "chunk_count": None,
-                "metadata": {"pages": 8, "size": "1.2MB"}
-            }
-        ],
-        "pagination": {
-            "page": 1,
-            "limit": 20,
-            "total": 2,
-            "pages": 1
-        }
-    }
+# Removed old mock endpoint - replaced with real database endpoint below
 
 
 @router.get("/admin/settings/test")
@@ -382,7 +345,7 @@ async def get_documents_test(
     document_type: Optional[str] = Query(None, description="Filter by document type")
 ) -> DocumentListResponse:
     """
-    Test endpoint for documents without authentication.
+    Test endpoint for documents without authentication - uses real database data.
     """
     try:
         import aiosqlite
@@ -422,7 +385,7 @@ async def get_documents_test(
             documents_query = f"""
                 SELECT id, filename, document_type, processing_status, 
                        uploaded_by, created_at as uploaded_at, updated_at as processed_at,
-                       error_message, chunk_count, metadata
+                       error_message, chunk_count, metadata, file_size
                 FROM documents{where_clause}
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
@@ -443,6 +406,19 @@ async def get_documents_test(
                         metadata = json.loads(metadata)
                     except (json.JSONDecodeError, TypeError):
                         metadata = {}
+                
+                # Add file size to metadata if available
+                if doc_dict.get("file_size") and not metadata.get("size"):
+                    file_size = doc_dict["file_size"]
+                    if file_size:
+                        # Convert bytes to human readable format
+                        if file_size < 1024:
+                            size_str = f"{file_size} B"
+                        elif file_size < 1024 * 1024:
+                            size_str = f"{file_size / 1024:.1f} KB"
+                        else:
+                            size_str = f"{file_size / (1024 * 1024):.1f} MB"
+                        metadata["size"] = size_str
                 
                 documents.append(DocumentResponse(
                     id=str(doc_dict["id"]),
