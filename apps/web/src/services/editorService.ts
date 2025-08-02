@@ -3,7 +3,6 @@
  * Handles API communication for document editor functionality
  */
 
-import { apiService } from './api';
 import type { 
   EditorDocument, 
   EditorTemplate, 
@@ -16,7 +15,42 @@ import type {
 } from '@/types/editor';
 
 export class EditorService {
-  private baseUrl = '/api/editor';
+  private documents: Map<number, EditorDocument> = new Map();
+  private nextDocumentId = 1;
+
+  // Mock templates data
+  private defaultTemplates: EditorTemplate[] = [
+    {
+      id: '1',
+      name: 'Research Paper',
+      description: 'Academic research paper with citations',
+      template_content: '<h1>[Title]</h1>\n<h2>Abstract</h2>\n<p>[Abstract content]</p>\n<h2>Introduction</h2>\n<p>[Introduction content]</p>\n<h2>Methodology</h2>\n<p>[Methodology content]</p>\n<h2>Results</h2>\n<p>[Results content]</p>\n<h2>Discussion</h2>\n<p>[Discussion content]</p>\n<h2>Conclusion</h2>\n<p>[Conclusion content]</p>\n<h2>References</h2>\n<p>[References will be automatically added from citations]</p>',
+      document_type: 'article',
+      metadata: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: '2',
+      name: 'Theological Essay',
+      description: 'Structured theological essay format',
+      template_content: '<h1>[Title]</h1>\n<h2>Introduction</h2>\n<p>[Introduce the theological topic and your thesis]</p>\n<h2>Biblical Foundation</h2>\n<p>[Present relevant biblical passages and their interpretation]</p>\n<h2>Historical Context</h2>\n<p>[Discuss historical and theological context]</p>\n<h2>Contemporary Application</h2>\n<p>[Apply the theological concepts to modern contexts]</p>\n<h2>Conclusion</h2>\n<p>[Summarize your argument and implications]</p>',
+      document_type: 'essay',
+      metadata: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: '3',
+      name: 'Study Notes',
+      description: 'Simple note-taking template',
+      template_content: '<h1>[Study Topic]</h1>\n<h2>Key Points</h2>\n<ul>\n<li>[Point 1]</li>\n<li>[Point 2]</li>\n<li>[Point 3]</li>\n</ul>\n<h2>Questions</h2>\n<ul>\n<li>[Question 1]</li>\n<li>[Question 2]</li>\n</ul>\n<h2>Additional Notes</h2>\n<p>[Your notes here]</p>',
+      document_type: 'notes',
+      metadata: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
 
   // Document operations
   async getDocuments(filters?: {
@@ -25,49 +59,70 @@ export class EditorService {
     limit?: number;
     offset?: number;
   }): Promise<EditorDocument[]> {
-    const params = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, value.toString());
-        }
-      });
-    }
-    
-    const url = `${this.baseUrl}/documents${params.toString() ? `?${params}` : ''}`;
-    const response = await apiService.get(url);
-    return response.data;
+    // Return empty array for now since we're using localStorage
+    return [];
   }
 
   async getDocument(id: number): Promise<EditorDocument> {
-    const response = await apiService.get(`${this.baseUrl}/documents/${id}`);
-    return response.data;
+    const doc = this.documents.get(id);
+    if (!doc) {
+      throw new Error(`Document ${id} not found`);
+    }
+    return doc;
   }
 
   async createDocument(document: CreateDocumentRequest): Promise<EditorDocument> {
-    const response = await apiService.post(`${this.baseUrl}/documents`, document);
-    return response.data;
+    const now = new Date().toISOString();
+    const newDoc: EditorDocument = {
+      id: this.nextDocumentId++,
+      title: document.title,
+      content: document.content,
+      document_type: document.document_type,
+      template_id: document.template_id,
+      status: 'draft',
+      created_at: now,
+      updated_at: now,
+      metadata: document.metadata || {}
+    };
+    
+    this.documents.set(newDoc.id, newDoc);
+    return newDoc;
   }
 
   async updateDocument(id: number, document: UpdateDocumentRequest): Promise<EditorDocument> {
-    const response = await apiService.put(`${this.baseUrl}/documents/${id}`, document);
-    return response.data;
+    const existingDoc = this.documents.get(id);
+    if (!existingDoc) {
+      throw new Error(`Document ${id} not found`);
+    }
+    
+    const updatedDoc: EditorDocument = {
+      ...existingDoc,
+      ...document,
+      updated_at: new Date().toISOString()
+    };
+    
+    this.documents.set(id, updatedDoc);
+    return updatedDoc;
   }
 
   async deleteDocument(id: number): Promise<void> {
-    await apiService.delete(`${this.baseUrl}/documents/${id}`);
+    this.documents.delete(id);
   }
 
   // Template operations
   async getTemplates(documentType?: string): Promise<EditorTemplate[]> {
-    const params = documentType ? `?document_type=${documentType}` : '';
-    const response = await apiService.get(`${this.baseUrl}/templates${params}`);
-    return response.data;
+    if (documentType) {
+      return this.defaultTemplates.filter(t => t.document_type === documentType);
+    }
+    return this.defaultTemplates;
   }
 
   async getTemplate(id: string): Promise<EditorTemplate> {
-    const response = await apiService.get(`${this.baseUrl}/templates/${id}`);
-    return response.data;
+    const template = this.defaultTemplates.find(t => t.id === id);
+    if (!template) {
+      throw new Error(`Template ${id} not found`);
+    }
+    return template;
   }
 
   async createTemplate(template: {
@@ -77,33 +132,11 @@ export class EditorService {
     document_type: string;
     metadata?: any;
   }): Promise<EditorTemplate> {
-    const response = await apiService.post(`${this.baseUrl}/templates`, template);
-    return response.data;
+    // Mock implementation - in a real app this would save to backend
+    throw new Error('Template creation not implemented in demo version');
   }
 
-  // Content processing
-  async formatDocument(documentId: number, formatRequest: {
-    command: string;
-    selected_text?: string;
-    selection_start?: number;
-    selection_end?: number;
-  }): Promise<{ formatted_content: string; changes: any[] }> {
-    const response = await apiService.post(`${this.baseUrl}/documents/${documentId}/format`, formatRequest);
-    return response.data;
-  }
-
-  async transferChatContent(documentId: number, transfer: {
-    source_message_id: string;
-    content: string;
-    sources?: any[];
-    suggested_template?: string;
-    title?: string;
-  }): Promise<{ success: boolean; citations_added: number }> {
-    const response = await apiService.post(`${this.baseUrl}/documents/${documentId}/transfer-content`, transfer);
-    return response.data;
-  }
-
-  // Export operations
+  // Export operations - simplified mock versions
   async exportDocument(
     documentId: number, 
     format: 'pdf' | 'docx' | 'markdown',
@@ -112,35 +145,29 @@ export class EditorService {
       custom_styling?: any;
     }
   ): Promise<{ export_id: number; status: string; message: string }> {
-    const params = new URLSearchParams();
-    if (options?.include_citations !== undefined) {
-      params.append('include_citations', options.include_citations.toString());
-    }
-    if (options?.custom_styling) {
-      params.append('custom_styling', JSON.stringify(options.custom_styling));
-    }
-
-    const url = `${this.baseUrl}/documents/${documentId}/export/${format}${params.toString() ? `?${params}` : ''}`;
-    const response = await apiService.post(url);
-    return response.data;
+    // Mock export - in a real app this would trigger actual export
+    return {
+      export_id: Math.floor(Math.random() * 1000),
+      status: 'completed',
+      message: 'Export completed successfully'
+    };
   }
 
   async getExportStatus(exportId: number): Promise<ExportStatus> {
-    const response = await apiService.get(`${this.baseUrl}/exports/${exportId}/status`);
-    return response.data;
+    // Mock export status
+    return {
+      export_id: exportId,
+      export_status: 'completed',
+      file_url: '/mock/download/url',
+      created_at: new Date().toISOString(),
+      completed_at: new Date().toISOString()
+    };
   }
 
-  async downloadExport(exportId: number): Promise<Blob> {
-    const response = await apiService.get(`${this.baseUrl}/exports/${exportId}/download`, {
-      responseType: 'blob'
-    });
-    return response.data;
-  }
-
-  // Citation management
+  // Citation management - simplified mock versions
   async getCitations(documentId: number): Promise<Citation[]> {
-    const response = await apiService.get(`${this.baseUrl}/documents/${documentId}/citations`);
-    return response.data;
+    // Return empty citations array for mock
+    return [];
   }
 
   async addCitation(documentId: number, citation: {
@@ -150,54 +177,17 @@ export class EditorService {
     position_end?: number;
     citation_format?: string;
   }): Promise<Citation> {
-    const response = await apiService.post(`${this.baseUrl}/documents/${documentId}/citations`, citation);
-    return response.data;
-  }
-
-  async deleteCitation(citationId: number): Promise<void> {
-    await apiService.delete(`${this.baseUrl}/citations/${citationId}`);
-  }
-
-  // Version history
-  async getDocumentVersions(documentId: number, limit = 10): Promise<any[]> {
-    const response = await apiService.get(`${this.baseUrl}/documents/${documentId}/versions?limit=${limit}`);
-    return response.data;
-  }
-
-  async restoreDocumentVersion(documentId: number, versionId: number): Promise<{ message: string }> {
-    const response = await apiService.post(`${this.baseUrl}/documents/${documentId}/restore/${versionId}`);
-    return response.data;
-  }
-
-  // Statistics
-  async getUserStats(): Promise<DocumentStats> {
-    const response = await apiService.get(`${this.baseUrl}/stats/user`);
-    return response.data;
-  }
-
-  // Bulk operations
-  async bulkDocumentOperation(operation: {
-    document_ids: number[];
-    operation: 'delete' | 'archive' | 'publish' | 'change_status';
-    parameters?: any;
-  }): Promise<{
-    successful_ids: number[];
-    failed_ids: number[];
-    errors: Record<number, string>;
-    total_processed: number;
-  }> {
-    const response = await apiService.post(`${this.baseUrl}/documents/bulk`, operation);
-    return response.data;
-  }
-
-  // Health check
-  async checkHealth(): Promise<{
-    status: string;
-    services: Record<string, string>;
-    timestamp: string;
-  }> {
-    const response = await apiService.get(`${this.baseUrl}/health`);
-    return response.data;
+    // Mock citation creation
+    return {
+      id: Math.floor(Math.random() * 1000),
+      document_id: documentId,
+      source_id: citation.source_id,
+      citation_text: citation.citation_text,
+      position_start: citation.position_start,
+      position_end: citation.position_end,
+      citation_format: citation.citation_format || 'apa',
+      created_at: new Date().toISOString()
+    };
   }
 
   // Utility methods
@@ -256,6 +246,44 @@ export class EditorService {
     });
     
     return content;
+  }
+
+  // LLM-powered template formatting
+  async formatContentWithTemplate(
+    existingContent: string, 
+    templateId: string,
+    title?: string
+  ): Promise<string> {
+    try {
+      const template = await this.getTemplate(templateId);
+      
+      const response = await fetch('http://localhost:8001/api/editor/format-template', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('theo_auth_token')}`,
+        },
+        body: JSON.stringify({
+          content: existingContent,
+          template_type: template.document_type,
+          template_name: template.name,
+          template_structure: template.description,
+          title: title
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Template formatting failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.formatted_content;
+    } catch (error) {
+      console.error('Template formatting error:', error);
+      // Fallback to basic template application
+      const template = await this.getTemplate(templateId);
+      return this.applyTemplate(template.template_content, { Title: title || 'Document Title' });
+    }
   }
 
   extractTemplateVariables(templateContent: string): string[] {

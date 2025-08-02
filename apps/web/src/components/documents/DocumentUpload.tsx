@@ -47,7 +47,11 @@ const MIME_TYPE_MAPPINGS = {
   '.json': ['application/json', 'text/plain']
 };
 
-export const DocumentUpload: React.FC = () => {
+interface DocumentUploadProps {
+  onUploadSuccess?: () => void;
+}
+
+export const DocumentUpload: React.FC<DocumentUploadProps> = ({ onUploadSuccess }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -278,6 +282,11 @@ export const DocumentUpload: React.FC = () => {
       // Connect to SSE for real-time job status updates
       if (result.jobId) {
         connectToJobStatus(result.jobId);
+      }
+      
+      // Call success callback if provided
+      if (onUploadSuccess) {
+        onUploadSuccess();
       }
       
       reset();

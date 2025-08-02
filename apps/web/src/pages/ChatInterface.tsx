@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, ArrowLeft, BookOpen, ExternalLink } from "lucide-react";
+import { Send, Bot, User, ArrowLeft, BookOpen, ExternalLink, FileEdit, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { chatService } from "@/services/chatService";
 import { authService } from "@/services/authService";
@@ -19,14 +19,30 @@ interface Message {
 }
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
+  // Load messages from localStorage or use default welcome message
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const savedMessages = localStorage.getItem('theo-chat-messages');
+      if (savedMessages) {
+        const parsedMessages = JSON.parse(savedMessages);
+        // Convert timestamp strings back to Date objects
+        return parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load saved messages:', error);
+    }
+    
+    // Return default welcome message if no saved messages
+    return [{
       id: "welcome",
       type: "assistant",
       content: "Hello! I'm Theo, your theological research assistant. I can help you explore scripture, church history, systematic theology, and more from our library of 200+ theological documents. What would you like to discuss today?",
       timestamp: new Date()
-    }
-  ]);
+    }];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,13 +81,10 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
-      // Send message to RAG system
-      const response = await chatService.sendMessage(input, {
-        useAdvancedPipeline: true,
-        includeContext: true
-      });
-
-      // Remove loading message and add real response
+      // Send message to backend
+      const response = await chatService.sendMessage(input);
+      
+      // Remove loading message and add response
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.isLoading);
         return [...filtered, {
@@ -109,6 +122,15 @@ const ChatInterface = () => {
     }
   };
 
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('theo-chat-messages', JSON.stringify(messages));
+    } catch (error) {
+      console.error('Failed to save messages:', error);
+    }
+  }, [messages]);
+
   // Auto-scroll to bottom when messages update
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -119,13 +141,48 @@ const ChatInterface = () => {
   // Clear conversation
   const handleClearConversation = () => {
     chatService.clearConversation();
-    setMessages([{
+    const welcomeMessage = {
       id: "welcome",
       type: "assistant",
       content: "Hello! I'm Theo, your theological research assistant. I can help you explore scripture, church history, systematic theology, and more from our library of 200+ theological documents. What would you like to discuss today?",
       timestamp: new Date()
-    }]);
+    };
+    setMessages([welcomeMessage]);
     setError(null);
+    
+    // Clear localStorage
+    try {
+      localStorage.removeItem('theo-chat-messages');
+    } catch (error) {
+      console.error('Failed to clear saved messages:', error);
+    }
+  };
+
+  // Handle drag start for chat messages
+  const handleDragStart = (e: React.DragEvent, message: Message) => {
+    if (message.type === 'assistant' && !message.isLoading) {
+      const dragData = {
+        type: 'chat-content',
+        data: {
+          content: message.content,
+          title: `Chat Response from ${message.timestamp.toLocaleString()}`,
+          sources: message.sources || [],
+          timestamp: message.timestamp.toISOString()
+        }
+      };
+      e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+      e.dataTransfer.effectAllowed = 'copy';
+    }
+  };
+
+  // Copy message content to clipboard
+  const copyMessageContent = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      // You could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
   };
 
   return (
@@ -144,6 +201,12 @@ const ChatInterface = () => {
             <h1 className="text-xl font-bold text-primary">Theo Chat</h1>
           </div>
           <div className="flex items-center space-x-4">
+            <Link to="/editor/new">
+              <Button variant="outline" size="sm">
+                <FileEdit className="h-4 w-4 mr-2" />
+                Open Editor
+              </Button>
+            </Link>
             <Button 
               variant="outline" 
               size="sm" 
@@ -187,12 +250,42 @@ const ChatInterface = () => {
                       )}
                     </div>
                     <div
-                      className={`rounded-lg p-3 ${
+                      className={`rounded-lg p-3 relative group ${
                         message.type === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted"
                       }`}
+                      draggable={message.type === "assistant" && !message.isLoading}
+                      onDragStart={(e) => handleDragStart(e, message)}
+                      style={{ cursor: message.type === "assistant" && !message.isLoading ? 'grab' : 'default' }}
                     >
+                      {/* Action Buttons for Assistant Messages */}
+                      {message.type === "assistant" && !message.isLoading && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 hover:bg-background/50"
+                              onClick={() => copyMessageContent(message.content)}
+                              title="Copy to clipboard"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Link to="/editor/new" state={{ importContent: message }}>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 hover:bg-background/50"
+                                title="Open in editor"
+                              >
+                                <FileEdit className="h-3 w-3" />
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="prose prose-sm max-w-none">
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                       </div>

@@ -1,32 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Editor } from '@tinymce/tinymce-react';
-
-// TinyMCE Self-hosted imports
-import 'tinymce/tinymce';
-
-// Theme and Plugins
-import 'tinymce/themes/silver';
-import 'tinymce/plugins/advlist';
-import 'tinymce/plugins/autolink';
-import 'tinymce/plugins/lists';
-import 'tinymce/plugins/link';
-import 'tinymce/plugins/image';
-import 'tinymce/plugins/charmap';
-import 'tinymce/plugins/preview';
-import 'tinymce/plugins/anchor';
-import 'tinymce/plugins/searchreplace';
-import 'tinymce/plugins/visualblocks';
-import 'tinymce/plugins/code';
-import 'tinymce/plugins/fullscreen';
-import 'tinymce/plugins/insertdatetime';
-import 'tinymce/plugins/media';
-import 'tinymce/plugins/table';
-import 'tinymce/plugins/help';
-import 'tinymce/plugins/wordcount';
-
-// Icons
-import 'tinymce/icons/default';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +29,7 @@ interface DocumentEditorProps {
 const DocumentEditor: React.FC<DocumentEditorProps> = () => {
   const { documentId } = useParams<{ documentId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // State management
   const [document, setDocument] = useState<EditorDocument | null>(null);
@@ -105,7 +79,40 @@ const DocumentEditor: React.FC<DocumentEditorProps> = () => {
           // Initialize new document
           setTitle('Untitled Document');
           setContent('');
-          setShowTemplateSelector(true);
+          
+          // Check if content is being imported from chat
+          const importedContent = (location.state as any)?.importContent;
+          if (importedContent) {
+            setTitle(`Theological Research - ${new Date().toLocaleDateString()}`);
+            const formattedContent = `<h2>Theological Research Notes</h2>
+<h3>Question Asked</h3>
+<p><em>From Theo Chat on ${importedContent.timestamp ? new Date(importedContent.timestamp).toLocaleString() : new Date().toLocaleString()}</em></p>
+<blockquote>
+<p><strong>Question:</strong> [Add the original question here]</p>
+</blockquote>
+
+<h3>Theo's Response</h3>
+<blockquote>
+${importedContent.content}
+</blockquote>
+
+${importedContent.sources && importedContent.sources.length > 0 ? `
+<h3>Sources Referenced</h3>
+<ul>
+${importedContent.sources.map((source: any) => `<li><strong>${source.title || source.filename || 'Unknown Source'}:</strong> ${source.excerpt || source.content || 'No excerpt available'} (Relevance: ${source.relevance ? source.relevance.toFixed(2) : 'N/A'})</li>`).join('\n')}
+</ul>
+` : ''}
+
+<h3>Your Analysis and Notes</h3>
+<p>Add your own theological analysis, cross-references, and study notes here...</p>
+
+<h3>Additional Research</h3>
+<p>Use this section to expand on the topic with your own research and insights...</p>`;
+            setContent(formattedContent);
+            updateWordCount(formattedContent);
+          } else {
+            setShowTemplateSelector(true);
+          }
         }
       } catch (err) {
         setError('Failed to load document');
@@ -160,19 +167,37 @@ const DocumentEditor: React.FC<DocumentEditorProps> = () => {
     updateWordCount(value);
   };
 
-  // Handle template selection
+  // Handle template selection with LLM formatting
   const handleTemplateSelect = async (templateId: string) => {
     try {
+      setIsLoading(true);
       const template = templates.find(t => t.id === templateId);
       if (template) {
         setSelectedTemplate(templateId);
         setDocumentType(template.document_type);
-        setContent(template.template_content);
-        updateWordCount(template.template_content);
+        
+        // If there's existing content, use LLM to format it according to the template
+        if (content && content.trim().length > 0) {
+          const formattedContent = await editorService.formatContentWithTemplate(
+            content,
+            templateId,
+            title
+          );
+          setContent(formattedContent);
+          updateWordCount(formattedContent);
+        } else {
+          // If no content, just apply the empty template
+          setContent(template.template_content);
+          updateWordCount(template.template_content);
+        }
+        
         setShowTemplateSelector(false);
       }
     } catch (err) {
       setError('Failed to apply template');
+      console.error('Template selection error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -270,23 +295,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = () => {
     }
   };
 
-  // Handle drag and drop in TinyMCE editor
-  const handleEditorDrop = (event: any, editor: any) => {
-    try {
-      const transferData = JSON.parse(event.dataTransfer.getData('application/json'));
-      if (transferData.type === 'chat-content') {
-        const insertText = `<p><strong>From Chat:</strong></p><blockquote>${transferData.data.content}</blockquote>`;
-        editor.insertContent(insertText);
-        
-        // Suggest title if empty
-        if (!title || title === 'Untitled Document') {
-          setTitle(transferData.data.title || 'Untitled Document');
-        }
-      }
-    } catch (err) {
-      console.error('Editor drop error:', err);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -443,33 +451,18 @@ const DocumentEditor: React.FC<DocumentEditorProps> = () => {
               className="text-2xl font-bold border-none p-0 mb-6 focus:ring-0"
             />
 
-            {/* TinyMCE Editor - Self-hosted */}
-            <Editor
-              value={content}
-              onEditorChange={handleContentChange}
-              init={{
-                height: 500,
-                menubar: true,
-                plugins: [
-                  'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                  'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                  'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                ],
-                toolbar: 'undo redo | blocks | ' +
-                  'bold italic forecolor | alignleft aligncenter ' +
-                  'alignright alignjustify | bullist numlist outdent indent | ' +
-                  'removeformat | help',
-                content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; line-height: 1.6; }',
-                placeholder: 'Start writing your document...\n\nYou can drag content from chat conversations directly into this editor.',
-                branding: false,
-                promotion: false,
-                license_key: 'gpl', // Use GPL license for open source
-                setup: (editor) => {
-                  // Add custom functionality for drag and drop
-                  editor.on('drop', (e) => {
-                    handleEditorDrop(e, editor);
-                  });
-                }
+            {/* Simple Textarea Editor */}
+            <textarea
+              value={content.replace(/<[^>]*>/g, '')} // Strip HTML tags for display
+              onChange={(e) => handleContentChange(e.target.value)}
+              placeholder="Start writing your document...
+
+You can drag content from chat conversations directly into this editor."
+              className="w-full h-96 p-4 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif',
+                fontSize: '14px',
+                lineHeight: '1.6'
               }}
             />
           </div>

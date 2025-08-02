@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Trash2 } from "lucide-react";
+import { Upload, Trash2, Plus, X } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -12,8 +12,17 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { DocumentUpload } from "@/components/documents/DocumentUpload";
 
 interface Document {
   id: string;
@@ -51,6 +60,7 @@ const DocumentManagementPage = () => {
     total: 0,
     pages: 0
   });
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const { user } = useAuth();
 
   const fetchDocuments = async (page: number = 1) => {
@@ -156,9 +166,10 @@ const DocumentManagementPage = () => {
     );
   }
 
-  const handleUpload = () => {
-    // TODO: Implement upload logic
-    alert('Upload functionality will be implemented next');
+  const handleUploadSuccess = () => {
+    // Refresh the document list when upload is successful
+    fetchDocuments(currentPage);
+    setUploadDialogOpen(false);
   };
 
   return (
@@ -168,10 +179,25 @@ const DocumentManagementPage = () => {
           <h1 className="text-2xl font-bold">Document Library</h1>
           <p className="text-muted-foreground">Manage your theological document collection</p>
         </div>
-        <Button onClick={handleUpload} className="flex items-center space-x-2">
-          <Upload className="h-4 w-4" />
-          <span>Upload Document</span>
-        </Button>
+        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center space-x-2">
+              <Upload className="h-4 w-4" />
+              <span>Upload Document</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Upload New Document</DialogTitle>
+              <DialogDescription>
+                Add a new theological document to the system. It will be processed and made available for research.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4">
+              <DocumentUpload onUploadSuccess={handleUploadSuccess} />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>

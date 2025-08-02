@@ -252,6 +252,70 @@ class EditorService:
                 "explanation": "Formatting failed"
             }
 
+    async def format_content_with_template(
+        self, 
+        content: str, 
+        template_type: str, 
+        template_name: str, 
+        template_structure: str, 
+        title: str
+    ) -> str:
+        """Format existing content according to a template using LLM"""
+        try:
+            client = get_openai_client()
+            
+            # Create template formatting prompt
+            system_prompt = f"""You are an advanced document formatter. Your task is to take existing content and intelligently restructure it according to the specified template format.
+
+Template Details:
+- Type: {template_type}
+- Name: {template_name}
+- Structure: {template_structure}
+
+Guidelines:
+1. Analyze the existing content and identify key themes, arguments, and supporting information
+2. Restructure the content to fit the template format perfectly
+3. Preserve all important information from the original content
+4. Create proper headings, sections, and organization as specified by the template
+5. Ensure smooth transitions between sections
+6. Add placeholder sections if the template requires them but content is missing
+7. Return only the formatted content, ready to use
+
+For a Theological Essay template, you should create:
+- Introduction with clear thesis
+- Biblical Foundation section with scripture references
+- Historical Context section with relevant background
+- Contemporary Application section
+- Conclusion that ties everything together
+
+Make the content flow naturally and academically sound."""
+
+            user_prompt = f"""Format this content according to the {template_name} template:
+
+Title: {title}
+
+Original Content:
+{content}
+
+Please restructure this content to perfectly fit the {template_name} format. Maintain all the theological insights and references, but organize them according to the template structure."""
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000
+            )
+            
+            formatted_content = response.choices[0].message.content.strip()
+            return formatted_content
+            
+        except Exception as e:
+            # Fallback to original content if formatting fails
+            return f"# {title}\n\n{content}"
+
     async def transfer_content(self, doc_id: int, transfer: ContentTransfer, user_id: int) -> Dict[str, Any]:
         """Transfer content from chat to document"""
         document = await self.get_document(doc_id, user_id)

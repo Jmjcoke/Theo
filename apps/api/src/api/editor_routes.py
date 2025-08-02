@@ -192,6 +192,32 @@ async def format_document(
         raise HTTPException(status_code=500, detail="Failed to format document")
 
 
+@router.post("/format-template")
+async def format_content_with_template(
+    request: Dict[str, Any],
+    user = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Format existing content according to a template using LLM"""
+    try:
+        content = request.get("content", "")
+        template_type = request.get("template_type", "")
+        template_name = request.get("template_name", "")
+        template_structure = request.get("template_structure", "")
+        title = request.get("title", "")
+        
+        # Process template formatting request
+        result = await editor_service.format_content_with_template(
+            content=content,
+            template_type=template_type,
+            template_name=template_name,
+            template_structure=template_structure,
+            title=title
+        )
+        return {"formatted_content": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to format content with template: {str(e)}")
+
+
 @router.post("/documents/{doc_id}/transfer-content")
 async def transfer_chat_content(
     doc_id: int,
